@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubernetes Scaling Without Ray</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#07111f;color:#eef6ff}
+.header{padding:18px 28px;background:#0b1728;border-bottom:1px solid #20334c}
+h1{margin:0 0 6px;font-size:27px}.sub{color:#9fb2c8}
+.controls{display:flex;gap:10px;flex-wrap:wrap;padding:14px 28px;background:#0a1423}
+button{background:#1c78d1;color:white;border:0;border-radius:7px;padding:10px 15px;font-weight:bold;cursor:pointer}
+button:hover{background:#2990ef}.status{margin-left:auto;color:#77d6a3;font-weight:bold}
+.layout{padding:20px 28px;display:grid;grid-template-columns:1fr 330px;gap:18px}
+.cluster{position:relative;min-height:650px;background:#091827;border:1px solid #25415e;border-radius:14px;padding:20px}
+.flow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px}
+.box{border:1px solid #3a5875;border-radius:12px;background:#0e2034;padding:15px;text-align:center;min-width:135px}
+.box strong{display:block;margin-bottom:5px}.small{font-size:12px;color:#9fb2c8}
+.arrow{font-size:25px;color:#66b8ff}
+.k8s{border:2px solid #2e7cc1;border-radius:15px;padding:18px;position:relative}
+.k8s-title{font-size:18px;font-weight:bold;margin-bottom:15px;color:#72c2ff}
+.pods{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.pod{min-height:280px;border:2px solid #345a7d;border-radius:12px;padding:12px;background:#0b1b2d;transition:.4s}
+.pod.active{border-color:#48c78e;box-shadow:0 0 20px #48c78e33}
+.pod.hidden{display:none}
+.pod-title{font-weight:bold;color:#7fd4ff;margin-bottom:12px}
+.replica{border:1px solid #536f8c;border-radius:9px;padding:10px;margin:9px 0;background:#102940;position:relative}
+.replica.busy{border-color:#ffbd5c;box-shadow:0 0 12px #ffbd5c33}
+.replica .bar{height:5px;background:#203c55;border-radius:5px;overflow:hidden;margin-top:8px}
+.replica .bar i{display:block;height:100%;width:0;background:#ffbd5c;transition:.2s}
+.queue{margin-top:18px;padding:13px;border:1px dashed #d69c43;border-radius:10px;color:#ffd68a}
+.gemini{margin:18px auto 0;max-width:260px;border:2px solid #8d6fe8;background:#181536;padding:16px;border-radius:13px;text-align:center}
+.side{background:#0b1728;border:1px solid #25415e;border-radius:14px;padding:18px}
+.metric{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #20334c}
+.metric b{color:#79c7ff}.note{margin-top:18px;padding:13px;background:#10243a;border-radius:10px;color:#c4d3e3;font-size:13px;line-height:1.5}
+.legend span{display:block;margin:9px 0}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.users{display:grid;grid-template-columns:repeat(10,1fr);gap:7px;margin-top:16px}
+.user{font-size:11px;text-align:center;padding:7px 2px;border:1px solid #36516c;border-radius:7px;background:#0d2237}
+.user.sending{background:#254e72;border-color:#6bc1ff}.user.done{background:#194c3a;border-color:#54d39b}
+.packet{position:fixed;width:13px;height:13px;border-radius:50%;background:#ffca65;z-index:10;pointer-events:none;box-shadow:0 0 12px #ffca65}
+.footer{padding:0 28px 22px;color:#8298ae;font-size:12px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.pods{grid-template-columns:1fr}.status{margin-left:0}.flow{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🚀 Kubernetes Scaling — Without Ray Serve</h1>
+  <div class="sub">Users → Load Balancer / Kubernetes Service → Pods → Gemini API</div>
+</div>
+
+<div class="controls">
+  <button onclick="startDemo()">▶ Start Demo</button>
+  <button onclick="burst(5)">+5 Requests</button>
+  <button onclick="burst(20)">20 Users Now</button>
+  <button onclick="resetDemo()">↻ Reset</button>
+  <div class="status" id="status">Ready</div>
+</div>
+
+<div class="layout">
+<main class="cluster">
+  <div class="flow">
+    <div class="box"><strong>👥 Users</strong><span class="small">Concurrent requests</span></div>
+    <div class="arrow">→</div>
+    <div class="box"><strong>⚖️ Load Balancer</strong><span class="small">Distributes requests</span></div>
+    <div class="arrow">→</div>
+    <div class="box"><strong>☸️ Kubernetes Service</strong><span class="small">Routes to Pods</span></div>
+  </div>
+
+  <div class="k8s">
+    <div class="k8s-title">Kubernetes Cluster</div>
+    <div class="pods">
+      <div class="pod active" id="pod1">
+        <div class="pod-title">📦 Pod 1 — Chatbot</div>
+        <div class="replica" id="app1"><b>Application Instance</b><div class="small">FastAPI / Flask</div><div class="bar"><i></i></div></div>
+        <div class="small">1 Pod = 1 application container/process in this simple model</div>
+      </div>
+
+      <div class="pod hidden" id="pod2">
+        <div class="pod-title">📦 Pod 2 — Chatbot</div>
+        <div class="replica" id="app2"><b>Application Instance</b><div class="small">FastAPI / Flask</div><div class="bar"><i></i></div></div>
+        <div class="small">Created by Kubernetes scaling</div>
+      </div>
+
+      <div class="pod hidden" id="pod3">
+        <div class="pod-title">📦 Pod 3 — Chatbot</div>
+        <div class="replica" id="app3"><b>Application Instance</b><div class="small">FastAPI / Flask</div><div class="bar"><i></i></div></div>
+        <div class="small">Created when more capacity is required</div>
+      </div>
+    </div>
+
+    <div class="queue" id="queue">⏳ Waiting requests: <b>0</b></div>
+  </div>
+
+  <div class="gemini">
+    <b>✨ Google Gemini API</b>
+    <div class="small">LLM processes chatbot request</div>
+  </div>
+
+  <div class="users" id="users"></div>
+</main>
+
+<aside class="side">
+  <h3>📊 Live Metrics</h3>
+  <div class="metric"><span>Concurrent requests</span><b id="active">0</b></div>
+  <div class="metric"><span>Completed</span><b id="done">0</b></div>
+  <div class="metric"><span>Waiting</span><b id="waiting">0</b></div>
+  <div class="metric"><span>Running Pods</span><b id="pods">1</b></div>
+
+  <div class="note">
+    <b>Important:</b><br><br>
+    There is no Ray Serve replica layer here.<br><br>
+    Kubernetes scales the <b>application Pods</b> themselves, typically using an HPA based on CPU, memory, or custom/external metrics.
+  </div>
+
+  <div class="note">
+    <b>Example:</b><br>
+    Pod 1 receives traffic → load increases → HPA decides to scale → Pod 2 starts → Service sends new requests to both Pods.
+  </div>
+
+  <div class="note legend">
+    <b>Ray vs Kubernetes</b>
+    <span>🔵 Ray Serve: replicas inside Ray cluster</span>
+    <span>🟢 Kubernetes: application Pods</span>
+    <span>🟠 Waiting: requests not currently processed</span>
+  </div>
+</aside>
+</div>
+<div class="footer">
+  Educational visualization — actual HPA scaling depends on configured metrics, target utilization, cooldowns, scheduling and available cluster/node capacity.
+</div>
+
+<script>
+let active=0, done=0, waiting=0, runningPods=1, timer=null, rr=0;
+const apps=['app1','app2','app3'];
+
+function renderUsers(){
+  const el=document.getElementById('users'); el.innerHTML='';
+  for(let i=1;i<=20;i++){
+    const d=document.createElement('div'); d.className='user'; d.id='u'+i; d.textContent='User '+i; el.appendChild(d);
+  }
+}
+renderUsers();
+
+function metrics(){
+  document.getElementById('active').textContent=active;
+  document.getElementById('done').textContent=done;
+  document.getElementById('waiting').textContent=waiting;
+  document.getElementById('pods').textContent=runningPods;
+  document.getElementById('queue').innerHTML='⏳ Waiting requests: <b>'+waiting+'</b>';
+}
+function showPod(n){
+  const p=document.getElementById('pod'+n);
+  if(p.classList.contains('hidden')){
+    p.classList.remove('hidden'); runningPods=n; metrics();
+  }
+}
+function packet(from,to){
+  const a=document.querySelector(from), b=document.querySelector(to);
+  if(!a||!b)return;
+  const x=a.getBoundingClientRect(), y=b.getBoundingClientRect();
+  const dot=document.createElement('div'); dot.className='packet';
+  dot.style.left=(x.left+x.width/2)+'px'; dot.style.top=(x.top+x.height/2)+'px';
+  document.body.appendChild(dot);
+  dot.animate([{transform:'translate(0,0)'},{transform:`translate(${y.left+y.width/2-x.left-x.width/2}px,${y.top+y.height/2-x.top-x.width/2}px)`}],{duration:650,easing:'ease-in-out'}).onfinish=()=>dot.remove();
+}
+function request(userId){
+  const user=document.getElementById('u'+userId);
+  if(!user)return;
+  user.classList.add('sending');
+  active++; metrics();
+
+  // Simple Kubernetes-style routing: load balancer/service sends to one of the available Pods.
+  const available=[];
+  for(let i=1;i<=runningPods;i++) available.push(i);
+  const pod=available[rr++%available.length];
+  const app=document.getElementById('app'+pod);
+  const bar=app.querySelector('i'); app.classList.add('busy'); bar.style.width='100%';
+  packet('#u'+userId,'#app'+pod);
+
+  setTimeout(()=>{
+    packet('#app'+pod,'.gemini');
+  },500);
+
+  setTimeout(()=>{
+    packet('.gemini','#u'+userId);
+    setTimeout(()=>{
+      active--; done++; user.classList.remove('sending'); user.classList.add('done');
+      app.classList.remove('busy'); bar.style.width='0%';
+      metrics();
+    },550);
+  },1500);
+}
+
+function burst(n){
+  const ids=[];
+  for(let i=1;i<=20;i++){
+    const u=document.getElementById('u'+i);
+    if(!u.classList.contains('done') && !u.classList.contains('sending')) ids.push(i);
+  }
+  ids.slice(0,n).forEach((id,k)=>setTimeout(()=>request(id),k*120));
+  // Demonstrate HPA-style pod scaling after sustained demand.
+  if(n>=5 && runningPods===1){
+    setTimeout(()=>{showPod(2);document.getElementById('status').textContent='HPA: load increased → Pod 2 created';},1100);
+  }
+  if(n>=12){
+    setTimeout(()=>{showPod(3);document.getElementById('status').textContent='HPA: more load → Pod 3 created';},1800);
+  }
+}
+function startDemo(){
+  resetDemo();
+  document.getElementById('status').textContent='Traffic starts → Pod 1 handles requests';
+  burst(5);
+  setTimeout(()=>burst(7),2300);
+  setTimeout(()=>burst(8),4700);
+}
+function resetDemo(){
+  clearTimeout(timer); active=0;done=0;waiting=0;runningPods=1;rr=0;
+  ['pod2','pod3'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  for(let i=1;i<=20;i++){const u=document.getElementById('u'+i);u.className='user';}
+  ['app1','app2','app3'].forEach(id=>{const a=document.getElementById(id);a.classList.remove('busy');a.querySelector('i').style.width='0%';});
+  document.getElementById('status').textContent='Ready';
+  metrics();
+}
+</script>
+</body>
+</html>
