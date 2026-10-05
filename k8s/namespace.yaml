@@ -1,0 +1,6 @@
+# Namespace that holds all agent resources.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-agent

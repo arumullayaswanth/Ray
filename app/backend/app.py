@@ -6,6 +6,7 @@ from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
@@ -15,7 +16,9 @@ log = logging.getLogger("ray.serve")
 
 MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 SYSTEM_PROMPT = "You are a helpful assistant. Be concise."
-INDEX_HTML = Path(__file__).parent / "static" / "index.html"
+STATIC_DIR = Path(__file__).parent / "static"
+INDEX_HTML = STATIC_DIR / "index.html"
+ASSETS_DIR = STATIC_DIR / "assets"
 MAX_HISTORY = 20
 MAX_TEXT_LEN = 4000
 _ROLES = {"user": "user", "assistant": "model"}
@@ -33,6 +36,10 @@ def build_contents(history: list[dict], message: str) -> list[dict]:
 
 
 api = FastAPI(title="KubeRay Gemini Agent")
+
+# Serve the built Vite/React assets (JS, CSS, images) if present.
+if ASSETS_DIR.exists():
+    api.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 
 
 class Message(BaseModel):
@@ -53,7 +60,7 @@ class ChatResponse(BaseModel):
 @serve.deployment(
     autoscaling_config={
         "min_replicas": 1,
-        "max_replicas": 3,
+        "max_replicas": 4,
         "upscale_delay_s": 2,
         # Keep replicas around for a little while before scaling down.
         "downscale_delay_s": 10,
@@ -80,11 +87,12 @@ class Agent:
         if INDEX_HTML.exists():
             self.index_html = INDEX_HTML.read_text(encoding="utf-8")
         else:
+            # The React UI has not been built into ./static yet.
             self.index_html = """
             <html>
                 <body>
                     <h1>KubeRay Gemini Agent</h1>
-                    <p>Agent is running.</p>
+                    <p>Agent is running. Build the frontend (npm run build) to load the UI.</p>
                 </body>
             </html>
             """

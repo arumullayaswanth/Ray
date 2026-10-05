@@ -6,17 +6,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  # write: so the workflow can commit the updated image tag back to the repo.
+  contents: write
+  id-token: write
 
 concurrency:
   group: deploy
   cancel-in-progress: false
 
 env:
-  AWS_REGION: us-east-1
-  CLUSTER_NAME: naresh
+  # Matches the ecr_repository_name default in Terraform.
   ECR_REPO: kuberay-agent
-  KUBERAY_VERSION: 1.2.2
 
 jobs:
   deploy:
@@ -27,9 +27,8 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - id: ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -38,61 +37,26 @@ jobs:
         id: image
         env:
           IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ github.sha }}
+          # Required for the Dockerfile-specific ignore file (Dockerfile.dockerignore).
+          DOCKER_BUILDKIT: "1"
         run: |
-          docker build -t "$IMAGE" .
+          docker build -f app/docker/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
           echo "uri=$IMAGE" >> "$GITHUB_OUTPUT"
 
-      - name: Configure kubectl
-        run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
-
-      - name: Install / upgrade KubeRay operator
-        run: |
-          helm repo add kuberay https://ray-project.github.io/kuberay-helm/
-          helm repo update
-          helm upgrade --install kuberay-operator kuberay/kuberay-operator \
-            --version "$KUBERAY_VERSION" \
-            --namespace kuberay-system --create-namespace --wait
-
-      - name: Create / update Gemini secret
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          kubectl create secret generic gemini-secret \
-            --from-literal=api-key="$GEMINI_API_KEY" \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Deploy RayService
+      - name: Update image tag in kustomization and commit
         env:
           IMAGE: ${{ steps.image.outputs.uri }}
         run: |
-          sed "s|__IMAGE__|${IMAGE}|g" k8s/rayservice.yaml | kubectl apply -f -
-
-      - name: Deploy public Service
-        run: kubectl apply -f k8s/service.yaml
-
-      - name: Wait for RayService to be ready
-        run: |
-          for i in $(seq 1 60); do
-            status=$(kubectl get rayservice ai-agent -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)
-            active=$(kubectl get rayservice ai-agent -o jsonpath='{.status.activeServiceStatus.applicationStatuses.agent.status}' 2>/dev/null || true)
-            echo "attempt $i: Ready=$status app=$active"
-            if [ "$status" = "True" ] || [ "$active" = "RUNNING" ]; then exit 0; fi
-            sleep 15
-          done
-          kubectl describe rayservice ai-agent
-          exit 1
-
-      - name: Print public URL
-        run: |
-          for i in $(seq 1 40); do
-            host=$(kubectl get svc ai-agent-public -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
-            if [ -n "$host" ]; then
-              echo "Public URL: http://$host"
-              echo "### Public URL: http://$host" >> "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
-            sleep 15
-          done
-          echo "Load balancer hostname not assigned yet"
-          kubectl describe svc ai-agent-public
+          cd k8s
+          kustomize edit set image kuberay-agent-image="$IMAGE"
+          cd ..
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "No image change to commit."
+          else
+            git commit -m "ci: update agent image to ${IMAGE}"
+            git push
+          fi

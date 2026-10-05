@@ -1,0 +1,12 @@
+.git
+.github
+terraform
+k8s
+**/__pycache__
+**/.pytest_cache
+
+# Frontend: build inside the image, don't ship local artifacts
+app/frontend/node_modules
+app/frontend/.vite
+app/frontend/.tsbuild
+app/backend/static

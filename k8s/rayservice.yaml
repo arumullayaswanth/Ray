@@ -1,9 +1,9 @@
-# __IMAGE__ is replaced by the GitHub Actions deploy job.
+# RayService running the Gemini agent (Ray Serve + FastAPI).
+---
 apiVersion: ray.io/v1
 kind: RayService
 metadata:
   name: ai-agent
-  namespace: default
 spec:
   serveConfigV2: |
     applications:
@@ -17,9 +17,11 @@ spec:
         dashboard-host: "0.0.0.0"
       template:
         spec:
+          serviceAccountName: ai-agent-sa
           containers:
             - name: ray-head
-              image: __IMAGE__
+              # Image set by Kustomize images: transformer.
+              image: kuberay-agent-image
               env:
                 - name: GEMINI_API_KEY
                   valueFrom:
@@ -29,7 +31,6 @@ spec:
                 - { containerPort: 8265, name: dashboard }
                 - { containerPort: 10001, name: client }
                 - { containerPort: 8000, name: serve }
-              # Small requests so a zero-downtime upgrade (old + new cluster) fits on 2 nodes
               resources:
                 requests: { cpu: "500m", memory: "2Gi" }
                 limits: { cpu: "1", memory: "2Gi" }
@@ -41,9 +42,11 @@ spec:
         rayStartParams: {}
         template:
           spec:
+            serviceAccountName: ai-agent-sa
             containers:
               - name: ray-worker
-                image: __IMAGE__
+                # Image set by Kustomize images: transformer.
+                image: kuberay-agent-image
                 env:
                   - name: GEMINI_API_KEY
                     valueFrom:

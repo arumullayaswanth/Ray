@@ -13,3 +13,10 @@ __pycache__/
 
 # Secrets
 .env
+
+# Frontend build output + caches (rebuilt in Docker)
+app/backend/static/
+app/frontend/node_modules/
+app/frontend/.vite/
+app/frontend/.tsbuild/
+app/frontend/*.tsbuildinfo

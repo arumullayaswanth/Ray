@@ -1,226 +1,421 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kubernetes Scaling Without Ray</title>
-<style>
-*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#07111f;color:#eef6ff}
-.header{padding:18px 28px;background:#0b1728;border-bottom:1px solid #20334c}
-h1{margin:0 0 6px;font-size:27px}.sub{color:#9fb2c8}
-.controls{display:flex;gap:10px;flex-wrap:wrap;padding:14px 28px;background:#0a1423}
-button{background:#1c78d1;color:white;border:0;border-radius:7px;padding:10px 15px;font-weight:bold;cursor:pointer}
-button:hover{background:#2990ef}.status{margin-left:auto;color:#77d6a3;font-weight:bold}
-.layout{padding:20px 28px;display:grid;grid-template-columns:1fr 330px;gap:18px}
-.cluster{position:relative;min-height:650px;background:#091827;border:1px solid #25415e;border-radius:14px;padding:20px}
-.flow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px}
-.box{border:1px solid #3a5875;border-radius:12px;background:#0e2034;padding:15px;text-align:center;min-width:135px}
-.box strong{display:block;margin-bottom:5px}.small{font-size:12px;color:#9fb2c8}
-.arrow{font-size:25px;color:#66b8ff}
-.k8s{border:2px solid #2e7cc1;border-radius:15px;padding:18px;position:relative}
-.k8s-title{font-size:18px;font-weight:bold;margin-bottom:15px;color:#72c2ff}
-.pods{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
-.pod{min-height:280px;border:2px solid #345a7d;border-radius:12px;padding:12px;background:#0b1b2d;transition:.4s}
-.pod.active{border-color:#48c78e;box-shadow:0 0 20px #48c78e33}
-.pod.hidden{display:none}
-.pod-title{font-weight:bold;color:#7fd4ff;margin-bottom:12px}
-.replica{border:1px solid #536f8c;border-radius:9px;padding:10px;margin:9px 0;background:#102940;position:relative}
-.replica.busy{border-color:#ffbd5c;box-shadow:0 0 12px #ffbd5c33}
-.replica .bar{height:5px;background:#203c55;border-radius:5px;overflow:hidden;margin-top:8px}
-.replica .bar i{display:block;height:100%;width:0;background:#ffbd5c;transition:.2s}
-.queue{margin-top:18px;padding:13px;border:1px dashed #d69c43;border-radius:10px;color:#ffd68a}
-.gemini{margin:18px auto 0;max-width:260px;border:2px solid #8d6fe8;background:#181536;padding:16px;border-radius:13px;text-align:center}
-.side{background:#0b1728;border:1px solid #25415e;border-radius:14px;padding:18px}
-.metric{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #20334c}
-.metric b{color:#79c7ff}.note{margin-top:18px;padding:13px;background:#10243a;border-radius:10px;color:#c4d3e3;font-size:13px;line-height:1.5}
-.legend span{display:block;margin:9px 0}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
-.users{display:grid;grid-template-columns:repeat(10,1fr);gap:7px;margin-top:16px}
-.user{font-size:11px;text-align:center;padding:7px 2px;border:1px solid #36516c;border-radius:7px;background:#0d2237}
-.user.sending{background:#254e72;border-color:#6bc1ff}.user.done{background:#194c3a;border-color:#54d39b}
-.packet{position:fixed;width:13px;height:13px;border-radius:50%;background:#ffca65;z-index:10;pointer-events:none;box-shadow:0 0 12px #ffca65}
-.footer{padding:0 28px 22px;color:#8298ae;font-size:12px}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.pods{grid-template-columns:1fr}.status{margin-left:0}.flow{flex-wrap:wrap}}
-</style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KubeRay Gemini Agent — Architecture</title>
+    <style>
+        :root {
+            --bg: #0a0d14;
+            --bg-2: #0f1420;
+            --panel: #141a28;
+            --panel-2: #1a2234;
+            --border: #243049;
+            --text: #e9eef7;
+            --muted: #93a1ba;
+            --accent: #7c5cff;
+            --aws: #ff9900;
+            --k8s: #326ce5;
+            --ray: #28afef;
+            --tf: #7b42bc;
+            --gh: #e8edf5;
+            --gemini: #8e7bff;
+            --ok: #34d399;
+            --wire: #33415f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+            background:
+                radial-gradient(1200px 700px at 50% -15%, rgba(124, 92, 255, .18), transparent 60%),
+                var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            padding: 36px 20px 10px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--muted);
+            margin: 10px 0 0;
+            font-size: .98rem;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            padding: 18px 20px 6px;
+            font-size: .8rem;
+            color: var(--muted);
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .legend i {
+            width: 22px;
+            height: 3px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .legend .deploy {
+            background: var(--aws);
+        }
+
+        .legend .runtime {
+            background: var(--ray);
+        }
+
+        .legend .secret {
+            background: var(--ok);
+        }
+
+        .diagram {
+            max-width: 1180px;
+            margin: 10px auto 60px;
+            padding: 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .tier-label {
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .14em;
+            color: var(--muted);
+            margin: 0 0 -14px 6px;
+            font-weight: 700;
+        }
+
+        .row {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 22px;
+            flex-wrap: wrap;
+        }
+
+        .node {
+            position: relative;
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 20px;
+            min-width: 170px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            text-align: center;
+            transition: transform .18s, border-color .18s, box-shadow .18s;
+        }
+
+        .node:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            box-shadow: 0 14px 40px rgba(124, 92, 255, .22);
+        }
+
+        .node img {
+            height: 46px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .node .emoji {
+            font-size: 42px;
+            line-height: 1;
+        }
+
+        .node h3 {
+            margin: 0;
+            font-size: .98rem;
+        }
+
+        .node small {
+            color: var(--muted);
+            font-size: .78rem;
+            line-height: 1.4;
+        }
+
+        .node.accent-aws {
+            border-top: 3px solid var(--aws);
+        }
+
+        .node.accent-k8s {
+            border-top: 3px solid var(--k8s);
+        }
+
+        .node.accent-ray {
+            border-top: 3px solid var(--ray);
+        }
+
+        .node.accent-tf {
+            border-top: 3px solid var(--tf);
+        }
+
+        .node.accent-gh {
+            border-top: 3px solid var(--gh);
+        }
+
+        .node.accent-gem {
+            border-top: 3px solid var(--gemini);
+        }
+
+        .node.accent-ok {
+            border-top: 3px solid var(--ok);
+        }
+
+        .arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 1.6rem;
+            min-width: 30px;
+        }
+
+        .down {
+            display: flex;
+            justify-content: center;
+            color: var(--wire);
+            font-size: 1.8rem;
+            margin: -12px 0;
+        }
+
+        /* grouped cluster box */
+        .cluster {
+            border: 1.5px dashed var(--k8s);
+            border-radius: 20px;
+            padding: 26px 22px 22px;
+            position: relative;
+            background: rgba(50, 108, 229, .05);
+        }
+
+        .cluster::before {
+            content: attr(data-title);
+            position: absolute;
+            top: -11px;
+            left: 22px;
+            background: var(--bg-2);
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: .76rem;
+            font-weight: 700;
+            color: #7fb0ff;
+            border: 1px solid var(--k8s);
+        }
+
+        .cluster .row+.down {
+            color: var(--ray);
+        }
+
+        .badge {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: .62rem;
+            color: var(--muted);
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2px 8px;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: .78rem;
+            padding: 0 20px 40px;
+        }
+
+        code {
+            font-family: ui-monospace, Consolas, monospace;
+            color: #cdb8ff;
+        }
+
+        @media (max-width: 720px) {
+            .arrow {
+                transform: rotate(90deg);
+            }
+
+            .node {
+                min-width: 150px;
+                width: 100%;
+                max-width: 320px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-<div class="header">
-  <h1>🚀 Kubernetes Scaling — Without Ray Serve</h1>
-  <div class="sub">Users → Load Balancer / Kubernetes Service → Pods → Gemini API</div>
-</div>
 
-<div class="controls">
-  <button onclick="startDemo()">▶ Start Demo</button>
-  <button onclick="burst(5)">+5 Requests</button>
-  <button onclick="burst(20)">20 Users Now</button>
-  <button onclick="resetDemo()">↻ Reset</button>
-  <div class="status" id="status">Ready</div>
-</div>
+    <header>
+        <h1>🚀 KubeRay Gemini Agent — Project Architecture</h1>
+        <p>AI chatbot on AWS EKS using KubeRay (Ray Serve), provisioned with Terraform, shipped via GitHub Actions.</p>
+    </header>
 
-<div class="layout">
-<main class="cluster">
-  <div class="flow">
-    <div class="box"><strong>👥 Users</strong><span class="small">Concurrent requests</span></div>
-    <div class="arrow">→</div>
-    <div class="box"><strong>⚖️ Load Balancer</strong><span class="small">Distributes requests</span></div>
-    <div class="arrow">→</div>
-    <div class="box"><strong>☸️ Kubernetes Service</strong><span class="small">Routes to Pods</span></div>
-  </div>
-
-  <div class="k8s">
-    <div class="k8s-title">Kubernetes Cluster</div>
-    <div class="pods">
-      <div class="pod active" id="pod1">
-        <div class="pod-title">📦 Pod 1 — Chatbot</div>
-        <div class="replica" id="app1"><b>Application Instance</b><div class="small">FastAPI / Flask</div><div class="bar"><i></i></div></div>
-        <div class="small">1 Pod = 1 application container/process in this simple model</div>
-      </div>
-
-      <div class="pod hidden" id="pod2">
-        <div class="pod-title">📦 Pod 2 — Chatbot</div>
-        <div class="replica" id="app2"><b>Application Instance</b><div class="small">FastAPI / Flask</div><div class="bar"><i></i></div></div>
-        <div class="small">Created by Kubernetes scaling</div>
-      </div>
-
-      <div class="pod hidden" id="pod3">
-        <div class="pod-title">📦 Pod 3 — Chatbot</div>
-        <div class="replica" id="app3"><b>Application Instance</b><div class="small">FastAPI / Flask</div><div class="bar"><i></i></div></div>
-        <div class="small">Created when more capacity is required</div>
-      </div>
+    <div class="legend">
+        <span><i class="deploy"></i> Build &amp; Deploy flow</span>
+        <span><i class="runtime"></i> Runtime request flow</span>
+        <span><i class="secret"></i> Secret flow (no keys in Git)</span>
     </div>
 
-    <div class="queue" id="queue">⏳ Waiting requests: <b>0</b></div>
-  </div>
+    <div class="diagram">
 
-  <div class="gemini">
-    <b>✨ Google Gemini API</b>
-    <div class="small">LLM processes chatbot request</div>
-  </div>
+        <!-- CI/CD tier -->
+        <p class="tier-label">Source &amp; CI/CD</p>
+        <div class="row">
+            <div class="node accent-gh">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" alt="Git" />
+                <h3>Developer</h3>
+                <small>git push to GitHub repo</small>
+            </div>
+            <div class="arrow">→</div>
+            <div class="node accent-gh">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" alt="GitHub"
+                    style="filter:invert(1)" />
+                <h3>GitHub Actions</h3>
+                <small>ci.yml &amp; deploy.yml<br />OIDC auth · no static keys</small>
+            </div>
+            <div class="arrow">→</div>
+            <div class="node accent-tf">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/terraform/terraform-original.svg"
+                    alt="Terraform" />
+                <h3>Terraform</h3>
+                <small>modular IaC<br />vpc · eks · ecr · secrets</small>
+            </div>
+            <div class="arrow">→</div>
+            <div class="node accent-aws">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker" />
+                <h3>Docker → ECR</h3>
+                <small>multi-stage build<br />React UI + Ray app</small>
+            </div>
+        </div>
 
-  <div class="users" id="users"></div>
-</main>
+        <div class="down">⬇</div>
 
-<aside class="side">
-  <h3>📊 Live Metrics</h3>
-  <div class="metric"><span>Concurrent requests</span><b id="active">0</b></div>
-  <div class="metric"><span>Completed</span><b id="done">0</b></div>
-  <div class="metric"><span>Waiting</span><b id="waiting">0</b></div>
-  <div class="metric"><span>Running Pods</span><b id="pods">1</b></div>
+        <!-- AWS tier -->
+        <p class="tier-label">AWS Cloud · us-east-1</p>
+        <div class="cluster" data-title="☸️ Amazon EKS Cluster (YashAcademy)"
+            style="border-color:var(--aws);background:rgba(255,153,0,.04)">
+            <span class="badge">VPC · public + private subnets · NLB</span>
 
-  <div class="note">
-    <b>Important:</b><br><br>
-    There is no Ray Serve replica layer here.<br><br>
-    Kubernetes scales the <b>application Pods</b> themselves, typically using an HPA based on CPU, memory, or custom/external metrics.
-  </div>
+            <div class="row">
+                <div class="node accent-aws">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original-wordmark.svg"
+                        alt="AWS" />
+                    <h3>Amazon EKS</h3>
+                    <small>managed Kubernetes<br />t3.medium node group</small>
+                </div>
+                <div class="node accent-aws">
+                    <span class="emoji">🗄️</span>
+                    <h3>Amazon ECR</h3>
+                    <small>container registry<br />kuberay-agent image</small>
+                </div>
+                <div class="node accent-ok">
+                    <span class="emoji">🔐</span>
+                    <h3>AWS Secrets Manager</h3>
+                    <small>gemini-api-key<br />set manually in console</small>
+                </div>
+                <div class="node accent-aws">
+                    <span class="emoji">🖥️</span>
+                    <h3>Bastion / Client</h3>
+                    <small>EC2 jump box<br />kubectl + eksctl</small>
+                </div>
+            </div>
 
-  <div class="note">
-    <b>Example:</b><br>
-    Pod 1 receives traffic → load increases → HPA decides to scale → Pod 2 starts → Service sends new requests to both Pods.
-  </div>
+            <div class="down" style="color:var(--k8s)">⬇</div>
 
-  <div class="note legend">
-    <b>Ray vs Kubernetes</b>
-    <span>🔵 Ray Serve: replicas inside Ray cluster</span>
-    <span>🟢 Kubernetes: application Pods</span>
-    <span>🟠 Waiting: requests not currently processed</span>
-  </div>
-</aside>
-</div>
-<div class="footer">
-  Educational visualization — actual HPA scaling depends on configured metrics, target utilization, cooldowns, scheduling and available cluster/node capacity.
-</div>
+            <!-- Operators / runtime inside the cluster -->
+            <div class="cluster" data-title="KubeRay + Operators">
+                <div class="row">
+                    <div class="node accent-ray">
+                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                            alt="KubeRay" />
+                        <h3>KubeRay Operator</h3>
+                        <small>Helm · manages RayService</small>
+                    </div>
+                    <div class="node accent-ok">
+                        <span class="emoji">🔄</span>
+                        <h3>External Secrets Operator</h3>
+                        <small>syncs Secrets Manager →<br />k8s Secret via Pod Identity</small>
+                    </div>
+                </div>
 
-<script>
-let active=0, done=0, waiting=0, runningPods=1, timer=null, rr=0;
-const apps=['app1','app2','app3'];
+                <div class="down" style="color:var(--ray)">⬇</div>
 
-function renderUsers(){
-  const el=document.getElementById('users'); el.innerHTML='';
-  for(let i=1;i<=20;i++){
-    const d=document.createElement('div'); d.className='user'; d.id='u'+i; d.textContent='User '+i; el.appendChild(d);
-  }
-}
-renderUsers();
+                <div class="row">
+                    <div class="node accent-ray">
+                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg"
+                            alt="Ray Serve" />
+                        <h3>Ray Serve · FastAPI</h3>
+                        <small>Agent deployment<br />autoscales 1→4 replicas</small>
+                    </div>
+                    <div class="node accent-ray">
+                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg"
+                            alt="React" />
+                        <h3>React UI</h3>
+                        <small>Vite + TypeScript<br />served from /</small>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-function metrics(){
-  document.getElementById('active').textContent=active;
-  document.getElementById('done').textContent=done;
-  document.getElementById('waiting').textContent=waiting;
-  document.getElementById('pods').textContent=runningPods;
-  document.getElementById('queue').innerHTML='⏳ Waiting requests: <b>'+waiting+'</b>';
-}
-function showPod(n){
-  const p=document.getElementById('pod'+n);
-  if(p.classList.contains('hidden')){
-    p.classList.remove('hidden'); runningPods=n; metrics();
-  }
-}
-function packet(from,to){
-  const a=document.querySelector(from), b=document.querySelector(to);
-  if(!a||!b)return;
-  const x=a.getBoundingClientRect(), y=b.getBoundingClientRect();
-  const dot=document.createElement('div'); dot.className='packet';
-  dot.style.left=(x.left+x.width/2)+'px'; dot.style.top=(x.top+x.height/2)+'px';
-  document.body.appendChild(dot);
-  dot.animate([{transform:'translate(0,0)'},{transform:`translate(${y.left+y.width/2-x.left-x.width/2}px,${y.top+y.height/2-x.top-x.width/2}px)`}],{duration:650,easing:'ease-in-out'}).onfinish=()=>dot.remove();
-}
-function request(userId){
-  const user=document.getElementById('u'+userId);
-  if(!user)return;
-  user.classList.add('sending');
-  active++; metrics();
+        <div class="down" style="color:var(--gemini)">⬇</div>
 
-  // Simple Kubernetes-style routing: load balancer/service sends to one of the available Pods.
-  const available=[];
-  for(let i=1;i<=runningPods;i++) available.push(i);
-  const pod=available[rr++%available.length];
-  const app=document.getElementById('app'+pod);
-  const bar=app.querySelector('i'); app.classList.add('busy'); bar.style.width='100%';
-  packet('#u'+userId,'#app'+pod);
+        <!-- External AI -->
+        <p class="tier-label">AI Model API</p>
+        <div class="row">
+            <div class="node accent-gem">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/googlecloud/googlecloud-original.svg"
+                    alt="Google Gemini" />
+                <h3>Google Gemini</h3>
+                <small>gemini-3.5-flash<br />via google-genai SDK</small>
+            </div>
+        </div>
 
-  setTimeout(()=>{
-    packet('#app'+pod,'.gemini');
-  },500);
+        <!-- Users -->
+        <div class="down" style="color:var(--ray)">⬆⬇</div>
+        <p class="tier-label">End Users</p>
+        <div class="row">
+            <div class="node accent-ray">
+                <span class="emoji">👥</span>
+                <h3>Users</h3>
+                <small>browser → NLB (port 80)<br />→ Ray Serve (8000)</small>
+            </div>
+        </div>
 
-  setTimeout(()=>{
-    packet('.gemini','#u'+userId);
-    setTimeout(()=>{
-      active--; done++; user.classList.remove('sending'); user.classList.add('done');
-      app.classList.remove('busy'); bar.style.width='0%';
-      metrics();
-    },550);
-  },1500);
-}
+    </div>
 
-function burst(n){
-  const ids=[];
-  for(let i=1;i<=20;i++){
-    const u=document.getElementById('u'+i);
-    if(!u.classList.contains('done') && !u.classList.contains('sending')) ids.push(i);
-  }
-  ids.slice(0,n).forEach((id,k)=>setTimeout(()=>request(id),k*120));
-  // Demonstrate HPA-style pod scaling after sustained demand.
-  if(n>=5 && runningPods===1){
-    setTimeout(()=>{showPod(2);document.getElementById('status').textContent='HPA: load increased → Pod 2 created';},1100);
-  }
-  if(n>=12){
-    setTimeout(()=>{showPod(3);document.getElementById('status').textContent='HPA: more load → Pod 3 created';},1800);
-  }
-}
-function startDemo(){
-  resetDemo();
-  document.getElementById('status').textContent='Traffic starts → Pod 1 handles requests';
-  burst(5);
-  setTimeout(()=>burst(7),2300);
-  setTimeout(()=>burst(8),4700);
-}
-function resetDemo(){
-  clearTimeout(timer); active=0;done=0;waiting=0;runningPods=1;rr=0;
-  ['pod2','pod3'].forEach(id=>document.getElementById(id).classList.add('hidden'));
-  for(let i=1;i<=20;i++){const u=document.getElementById('u'+i);u.className='user';}
-  ['app1','app2','app3'].forEach(id=>{const a=document.getElementById(id);a.classList.remove('busy');a.querySelector('i').style.width='0%';});
-  document.getElementById('status').textContent='Ready';
-  metrics();
-}
-</script>
+    <footer>
+        Request path: <code>User → NLB → Ray Serve (FastAPI) → Gemini API</code> &nbsp;·&nbsp;
+        Secret path: <code>Secrets Manager → ESO → k8s Secret → Pod env</code> &nbsp;·&nbsp;
+        Deploy path: <code>GitHub Actions → Terraform/Docker → EKS</code>
+    </footer>
+
 </body>
+
 </html>
