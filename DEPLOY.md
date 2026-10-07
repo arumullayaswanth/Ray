@@ -3,7 +3,7 @@
 ## Step 1 — Create S3 bucket for Terraform state (AWS Console)
 
 1. **S3 → Create bucket**.
-2. Bucket name: `kuberay-agent-tfstate-fde` (must be globally unique).
+2. Bucket name: `kuberay-agent-tfstate-fde-ray` (must be globally unique).
 3. Region: `us-east-1`.
 4. Enable **Bucket Versioning**.
 5. **Create bucket**.
@@ -68,7 +68,7 @@ Repo → **Settings → Secrets and variables → Actions → Variables → New 
 | ------------------- | --------------------------- |
 | `AWS_REGION`        | `us-east-1`                 |
 | `AWS_OIDC_ROLE_ARN` | role ARN from Step 2        |
-| `TF_STATE_BUCKET`   | `kuberay-agent-tfstate-fde` |
+| `TF_STATE_BUCKET`   | `kuberay-agent-tfstate-fde-ray` |
 
 > `TF_STATE_KEY`, `CLUSTER_NAME`, and `ECR_REPO` are hardcoded in Terraform / the workflows.
 

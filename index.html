@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KubeRay Gemini Agent — Architecture</title>
+    <title>Ray &amp; KubeRay</title>
     <style>
         :root {
-            --bg: #0a0d14;
+            --bg: #070a12;
             --bg-2: #0f1420;
             --panel: #141a28;
             --panel-2: #1a2234;
@@ -22,6 +22,7 @@
             --gh: #e8edf5;
             --gemini: #8e7bff;
             --ok: #34d399;
+            --error: #fb7185;
             --wire: #33415f;
         }
 
@@ -33,35 +34,322 @@
             margin: 0;
             font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
             background:
-                radial-gradient(1200px 700px at 50% -15%, rgba(124, 92, 255, .18), transparent 60%),
+                radial-gradient(1100px 600px at 80% -10%, rgba(40, 175, 239, .16), transparent 55%),
+                radial-gradient(1000px 600px at 15% 0%, rgba(124, 92, 255, .18), transparent 55%),
                 var(--bg);
             color: var(--text);
             min-height: 100vh;
         }
 
-        header {
-            text-align: center;
-            padding: 36px 20px 10px;
+        code {
+            font-family: ui-monospace, Consolas, monospace;
+            color: #cdb8ff;
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 2rem;
-            letter-spacing: -0.02em;
+        /* ===== Top nav ===== */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 26px;
+            background: rgba(10, 13, 20, .72);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
         }
 
-        header p {
+        .nav .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            margin-right: auto;
+        }
+
+        .nav .brand img {
+            height: 26px;
+        }
+
+        .nav button {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            border: 1px solid transparent;
+            background: transparent;
             color: var(--muted);
-            margin: 10px 0 0;
-            font-size: .98rem;
+            font: inherit;
+            font-weight: 600;
+            padding: 9px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: .18s;
         }
 
+        .nav button svg {
+            width: 17px;
+            height: 17px;
+        }
+
+        .nav button:hover {
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .nav button.active {
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), var(--ray));
+        }
+
+        /* ===== Pages ===== */
+        .page {
+            display: none;
+            animation: fade .4s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fade {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        /* ===== Home / 3D hero ===== */
+        .hero {
+            min-height: 78vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+            perspective: 1000px;
+        }
+
+        .orbit {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin-bottom: 30px;
+            transform-style: preserve-3d;
+            animation: spin 18s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotateY(360deg) rotateX(8deg);
+            }
+        }
+
+        .orbit .core {
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 120px;
+            height: 120px;
+            border-radius: 26px;
+            background: linear-gradient(135deg, var(--ray), var(--accent));
+            display: grid;
+            place-items: center;
+            box-shadow: 0 0 60px rgba(40, 175, 239, .5);
+            transform: translateZ(40px);
+        }
+
+        .orbit .core img {
+            height: 62px;
+            filter: drop-shadow(0 6px 16px rgba(0, 0, 0, .4));
+        }
+
+        .chip3d {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 66px;
+            height: 66px;
+            margin: -33px;
+            border-radius: 16px;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            display: grid;
+            place-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+        }
+
+        .chip3d img {
+            height: 34px;
+        }
+
+        .chip3d.c1 {
+            transform: rotateY(0deg) translateZ(130px);
+        }
+
+        .chip3d.c2 {
+            transform: rotateY(90deg) translateZ(130px);
+        }
+
+        .chip3d.c3 {
+            transform: rotateY(180deg) translateZ(130px);
+        }
+
+        .chip3d.c4 {
+            transform: rotateY(270deg) translateZ(130px);
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.4rem);
+            margin: 0 0 12px;
+            letter-spacing: -.03em;
+            background: linear-gradient(120deg, #fff, var(--ray), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero p {
+            color: var(--muted);
+            max-width: 640px;
+            margin: 0 0 26px;
+            font-size: 1.05rem;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .hero-cta button {
+            border: 0;
+            border-radius: 12px;
+            padding: 13px 22px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), var(--ray));
+            transition: transform .12s;
+        }
+
+        .hero-cta button.ghost {
+            background: #182238;
+            border: 1px solid var(--border);
+        }
+
+        .hero-cta button:hover {
+            transform: translateY(-2px);
+        }
+
+        .stats {
+            display: flex;
+            gap: 28px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 42px;
+        }
+
+        .stat b {
+            display: block;
+            font-size: 1.7rem;
+            color: var(--ray);
+        }
+
+        .stat span {
+            color: var(--muted);
+            font-size: .82rem;
+        }
+
+        /* ===== Concepts page ===== */
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 30px 24px 60px;
+        }
+
+        .wrap h2 {
+            font-size: 1.6rem;
+            margin: 0 0 6px;
+        }
+
+        .wrap .sub {
+            color: var(--muted);
+            margin: 0 0 26px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .concept {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+            padding: 20px;
+            transition: transform .18s, border-color .18s, box-shadow .18s;
+        }
+
+        .concept:hover {
+            transform: translateY(-4px);
+            border-color: var(--ray);
+            box-shadow: 0 14px 40px rgba(40, 175, 239, .16);
+        }
+
+        .concept .ico {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 12px;
+            background: #0e2034;
+        }
+
+        .concept .ico img {
+            height: 26px;
+        }
+
+        .concept h3 {
+            margin: 0 0 6px;
+            font-size: 1.05rem;
+        }
+
+        .concept p {
+            margin: 0;
+            color: var(--muted);
+            font-size: .9rem;
+            line-height: 1.55;
+        }
+
+        .concept .tag {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: .7rem;
+            color: var(--ray);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2px 9px;
+        }
+
+        /* ===== Architecture diagram ===== */
         .legend {
             display: flex;
             flex-wrap: wrap;
             gap: 14px;
             justify-content: center;
-            padding: 18px 20px 6px;
+            padding: 6px 20px 2px;
             font-size: .8rem;
             color: var(--muted);
         }
@@ -93,7 +381,7 @@
 
         .diagram {
             max-width: 1180px;
-            margin: 10px auto 60px;
+            margin: 14px auto 10px;
             padding: 0 24px;
             display: flex;
             flex-direction: column;
@@ -205,7 +493,6 @@
             margin: -12px 0;
         }
 
-        /* grouped cluster box */
         .cluster {
             border: 1.5px dashed var(--k8s);
             border-radius: 20px;
@@ -228,10 +515,6 @@
             border: 1px solid var(--k8s);
         }
 
-        .cluster .row+.down {
-            color: var(--ray);
-        }
-
         .badge {
             position: absolute;
             top: 10px;
@@ -244,177 +527,3784 @@
             padding: 2px 8px;
         }
 
-        footer {
+        /* ===== Demo ===== */
+        .demo {
+            max-width: 1100px;
+            margin: 24px auto 0;
+            padding: 0 24px 50px;
+        }
+
+        .demo-card {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+            padding: 20px;
+        }
+
+        .demo-top {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .demo-top h2 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .demo-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #fff;
+            background: linear-gradient(135deg, var(--ray), var(--k8s));
+            transition: transform .12s;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .demo-btn.secondary {
+            background: #223049;
+        }
+
+        .demo-progress {
+            flex: 1;
+            min-width: 160px;
+            height: 6px;
+            background: #1a2334;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .demo-progress i {
+            display: block;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--ray), var(--ok));
+            transition: width .4s ease;
+        }
+
+        .demo-load {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .demo-load .load-emoji {
+            font-size: 1.1rem;
+        }
+
+        .load-track {
+            flex: 1;
+            height: 10px;
+            background: #141d2e;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .load-track i {
+            display: block;
+            height: 100%;
+            width: 0;
+            border-radius: 8px;
+            background: linear-gradient(90deg, var(--ok), #ffbd5c, var(--error));
+            transition: width .5s ease;
+        }
+
+        .load-count {
+            font-size: .82rem;
+            color: var(--muted);
+            min-width: 90px;
+            text-align: right;
+        }
+
+        .load-count b {
+            color: var(--text);
+        }
+
+        .demo-stage {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 18px;
+        }
+
+        @media (max-width: 820px) {
+            .demo-stage {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .demo-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .demo-step {
+            display: flex;
+            gap: 10px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #0e1626;
+            opacity: .45;
+            transition: .3s;
+        }
+
+        .demo-step.active {
+            opacity: 1;
+            border-color: var(--ray);
+            box-shadow: 0 0 18px rgba(40, 175, 239, .18);
+        }
+
+        .demo-step.done {
+            opacity: .8;
+            border-color: var(--ok);
+        }
+
+        .demo-step .num {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-size: .78rem;
+            font-weight: 700;
+            background: #1b2740;
+            color: var(--muted);
+        }
+
+        .demo-step.active .num {
+            background: var(--ray);
+            color: #fff;
+        }
+
+        .demo-step.done .num {
+            background: var(--ok);
+            color: #06281c;
+        }
+
+        .demo-step b {
+            font-size: .88rem;
+        }
+
+        .demo-step small {
+            color: var(--muted);
+            font-size: .76rem;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .demo-canvas {
+            border: 1.5px dashed var(--k8s);
+            border-radius: 16px;
+            background: rgba(50, 108, 229, .05);
+            padding: 16px;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .demo-canvas .ctitle {
+            font-size: .78rem;
+            font-weight: 700;
+            color: #7fb0ff;
+            margin-bottom: 12px;
+        }
+
+        .operator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--k8s);
+            border-radius: 10px;
+            padding: 7px 12px;
+            background: #0e2034;
+            font-size: .82rem;
+            margin-bottom: 12px;
+            transition: .3s;
+        }
+
+        .operator.pulse {
+            box-shadow: 0 0 16px rgba(50, 108, 229, .5);
+            border-color: #7fb0ff;
+        }
+
+        .op-state {
+            margin-left: 6px;
+            font-size: .7rem;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1px 8px;
+        }
+
+        .operator.pulse .op-state {
+            color: #7fb0ff;
+            border-color: var(--k8s);
+        }
+
+        .pod-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .pod {
+            width: 150px;
+            border: 2px solid #345a7d;
+            border-radius: 12px;
+            background: #0b1b2d;
+            padding: 10px;
+            opacity: 0;
+            transform: scale(.8);
+            transition: .4s;
+        }
+
+        .pod.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .pod.head {
+            border-color: var(--gemini);
+        }
+
+        .pod.dying {
+            border-color: var(--error) !important;
+            animation: shake .4s;
+            opacity: .55;
+        }
+
+        @keyframes shake {
+            25% {
+                transform: translateX(-3px);
+            }
+
+            75% {
+                transform: translateX(3px);
+            }
+        }
+
+        .pod .pod-h {
+            font-weight: 700;
+            font-size: .82rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pod .pod-logo {
+            height: 16px;
+        }
+
+        .pod .dotled {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffbd5c;
+            animation: led 1s infinite;
+        }
+
+        .pod.ready .dotled {
+            background: var(--ok);
+            animation: none;
+        }
+
+        @keyframes led {
+            50% {
+                opacity: .3;
+            }
+        }
+
+        .pod .replica {
+            border: 1px solid #42618a;
+            border-radius: 7px;
+            padding: 6px 8px;
+            margin-top: 6px;
+            font-size: .72rem;
+            background: #102940;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: .35s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pod .replica.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .pod .replica.busy {
+            border-color: #ffbd5c;
+            box-shadow: 0 0 10px rgba(255, 189, 92, .3);
+        }
+
+        .pod .replica .rep-logo {
+            height: 11px;
+        }
+
+        .pod .small {
+            font-size: .68rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .demo-metrics {
+            display: flex;
+            gap: 16px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+            font-size: .78rem;
+        }
+
+        .demo-metrics span {
+            color: var(--muted);
+        }
+
+        .demo-metrics b {
+            color: var(--ray);
+        }
+
+        .queue-chip {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 6px 12px;
+            border: 1px dashed #d69c43;
+            border-radius: 8px;
+            color: #ffd68a;
+            font-size: .76rem;
+        }
+
+        .foot {
             text-align: center;
             color: var(--muted);
             font-size: .78rem;
-            padding: 0 20px 40px;
+            padding: 10px 20px 40px;
         }
 
-        code {
-            font-family: ui-monospace, Consolas, monospace;
-            color: #cdb8ff;
+        /* ===== End-to-end flow pipeline ===== */
+        .pipe {
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            overflow-x: auto;
+            padding: 20px 6px 10px;
         }
 
-        @media (max-width: 720px) {
-            .arrow {
+        .hop {
+            position: relative;
+            flex: 1 0 110px;
+            min-width: 110px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 8px;
+            padding: 12px 6px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+            transition: .25s;
+            z-index: 2;
+        }
+
+        .hop.lit {
+            border-color: var(--ray);
+            box-shadow: 0 0 20px rgba(40, 175, 239, .3);
+            transform: translateY(-3px);
+        }
+
+        .hop .hop-ico {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: #0e2034;
+        }
+
+        .hop .hop-ico img {
+            height: 28px;
+        }
+
+        .hop .hop-ico .big {
+            font-size: 26px;
+        }
+
+        .hop b {
+            font-size: .82rem;
+        }
+
+        .hop small {
+            color: var(--muted);
+            font-size: .68rem;
+            line-height: 1.3;
+        }
+
+        .hop-link {
+            flex: 0 0 26px;
+            align-self: center;
+            display: grid;
+            place-items: center;
+            color: var(--wire);
+            font-size: 1.1rem;
+            z-index: 1;
+        }
+
+        .hop-link.lit {
+            color: var(--ray);
+        }
+
+        /* flowing packet */
+        .packet {
+            position: absolute;
+            top: 46px;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: #ffd166;
+            box-shadow: 0 0 12px #ffd166;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .packet.resp {
+            background: var(--ok);
+            box-shadow: 0 0 12px var(--ok);
+        }
+
+        @media (max-width: 760px) {
+            .pipe {
+                flex-direction: column;
+            }
+
+            .hop-link {
                 transform: rotate(90deg);
             }
+        }
+    </style>
+    <style>
+        /* 16:9 cinematic isometric explainer */
+        .story-shell {
+            max-width: 1320px;
+            margin: 20px auto 52px;
+            padding: 0 18px;
+        }
 
-            .node {
-                min-width: 150px;
-                width: 100%;
-                max-width: 320px;
+        .story-player {
+            position: relative;
+            aspect-ratio: 16/9;
+            overflow: hidden;
+            border: 1px solid #27395c;
+            border-radius: 26px;
+            background: radial-gradient(circle at 70% 0%, #183565 0, transparent 38%), linear-gradient(160deg, #081426 0%, #0d1d36 55%, #091428 100%);
+            box-shadow: 0 32px 90px rgba(0, 0, 0, .55);
+            isolation: isolate;
+        }
+
+        .story-sky {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 12% 18%, rgba(124, 92, 255, .22), transparent 18%), radial-gradient(circle at 88% 34%, rgba(40, 175, 239, .18), transparent 20%);
+        }
+
+        .story-stars {
+            position: absolute;
+            inset: 0;
+            opacity: .25;
+            background-image: radial-gradient(#fff 1px, transparent 1px);
+            background-size: 33px 33px;
+            transform: perspective(600px) rotateX(58deg) scale(1.5);
+            transform-origin: center 75%;
+        }
+
+        .story-head {
+            position: absolute;
+            z-index: 30;
+            left: 2.4%;
+            right: 2.4%;
+            top: 2.7%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .story-brand {
+            margin-right: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .story-brand-mark {
+            width: clamp(28px, 3.4vw, 46px);
+            height: clamp(28px, 3.4vw, 46px);
+            display: grid;
+            place-items: center;
+            border-radius: 13px;
+            background: linear-gradient(145deg, #28afef, #7c5cff);
+            box-shadow: 0 10px 32px rgba(40, 175, 239, .32);
+        }
+
+        .story-brand-mark img {
+            width: 64%;
+            height: 64%;
+        }
+
+        .story-brand b {
+            display: block;
+            font-size: clamp(.7rem, 1.25vw, 1.05rem);
+        }
+
+        .story-brand small {
+            display: block;
+            color: #8fa3bf;
+            font-size: clamp(.48rem, .75vw, .68rem);
+        }
+
+        .story-button {
+            border: 1px solid #38547d;
+            background: rgba(15, 32, 56, .88);
+            color: #fff;
+            border-radius: 10px;
+            padding: clamp(6px, .75vw, 9px) clamp(8px, 1vw, 14px);
+            font: inherit;
+            font-size: clamp(.52rem, .76vw, .7rem);
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .story-button.primary {
+            border: 0;
+            background: linear-gradient(135deg, #28afef, #326ce5);
+        }
+
+        .story-button:disabled {
+            opacity: .65;
+        }
+
+        .scene-title {
+            position: absolute;
+            z-index: 25;
+            top: 11.5%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 76%;
+            text-align: center;
+        }
+
+        .scene-title .eyebrow {
+            color: #6fd3ff;
+            font-size: clamp(.45rem, .68vw, .62rem);
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+
+        .scene-title h3 {
+            margin: .3% 0 0;
+            font-size: clamp(.85rem, 1.7vw, 1.5rem);
+            letter-spacing: -.025em;
+            text-shadow: 0 5px 20px #000;
+        }
+
+        .world {
+            position: absolute;
+            z-index: 5;
+            left: 3%;
+            right: 3%;
+            top: 20%;
+            bottom: 17%;
+            perspective: 1100px;
+            transition: transform 1s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .world-plane {
+            position: absolute;
+            inset: 6% 2% 2%;
+            border: 1px solid rgba(97, 169, 255, .26);
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center, rgba(29, 75, 126, .44), rgba(8, 24, 44, .12) 67%, transparent 70%);
+            transform: rotateX(58deg);
+            box-shadow: inset 0 0 60px rgba(40, 175, 239, .12);
+        }
+
+        .road-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            filter: drop-shadow(0 0 8px rgba(69, 191, 255, .3));
+        }
+
+        .road-svg path.base {
+            fill: none;
+            stroke: #284a6f;
+            stroke-width: 1.4;
+            stroke-dasharray: 2.3 1.8;
+        }
+
+        .road-svg path.live {
+            fill: none;
+            stroke: #4ac5ff;
+            stroke-width: .55;
+            stroke-dasharray: 1.2 1.7;
+            animation: roadFlow 1.2s linear infinite;
+        }
+
+        @keyframes roadFlow {
+            to {
+                stroke-dashoffset: -5.8;
             }
+        }
+
+        .island {
+            position: absolute;
+            width: clamp(62px, 9vw, 120px);
+            height: clamp(48px, 6.7vw, 88px);
+            transform-style: preserve-3d;
+            transition: filter .45s, opacity .45s, transform .7s;
+        }
+
+        .island.dim {
+            filter: saturate(.35) brightness(.55);
+            opacity: .52;
+        }
+
+        .island.focus {
+            filter: drop-shadow(0 0 18px rgba(79, 201, 255, .58));
+            transform: translateY(-7px) scale(1.08);
+        }
+
+        .iso-base {
+            position: absolute;
+            inset: 18% 6% 5%;
+            background: linear-gradient(135deg, #244d78, #142e50);
+            border: 1px solid #4789c1;
+            border-radius: 10px;
+            transform: rotate(30deg) skewX(-30deg) scaleY(.86);
+            box-shadow: 8px 12px 22px rgba(0, 0, 0, .38);
+        }
+
+        .service-building {
+            position: absolute;
+            left: 25%;
+            right: 25%;
+            top: 0;
+            bottom: 25%;
+            border: 1px solid #4d719c;
+            border-radius: 11px 11px 7px 7px;
+            background: linear-gradient(145deg, #1d385d, #102641);
+            display: grid;
+            place-items: center;
+            box-shadow: 7px 11px 18px rgba(0, 0, 0, .36);
+            transform: translateZ(20px);
+        }
+
+        .service-building::before {
+            content: "";
+            position: absolute;
+            left: 5px;
+            right: -7px;
+            bottom: -7px;
+            height: 7px;
+            background: #0a192d;
+            transform: skewX(-45deg);
+            border-radius: 0 0 5px 5px;
+        }
+
+        .service-building img {
+            width: 48%;
+            height: 48%;
+            object-fit: contain;
+        }
+
+        .service-building .glyph {
+            font-size: clamp(19px, 2.8vw, 38px);
+        }
+
+        .service-label {
+            position: absolute;
+            left: 50%;
+            bottom: -18%;
+            transform: translateX(-50%);
+            width: 150%;
+            text-align: center;
+            color: #dceaff;
+            font-size: clamp(.4rem, .67vw, .59rem);
+            font-weight: 800;
+            white-space: nowrap;
+            text-shadow: 0 3px 8px #000;
+        }
+
+        .service-label small {
+            display: block;
+            color: #7790ad;
+            font-size: .82em;
+            font-weight: 600;
+        }
+
+        .s-users {
+            left: 0;
+            top: 44%
+        }
+
+        .s-domain {
+            left: 11%;
+            top: 20%
+        }
+
+        .s-cloudflare {
+            left: 22%;
+            top: 45%
+        }
+
+        .s-waf {
+            left: 33%;
+            top: 18%
+        }
+
+        .s-api {
+            left: 44%;
+            top: 44%
+        }
+
+        .s-vpc {
+            left: 55%;
+            top: 18%
+        }
+
+        .s-nlb {
+            left: 65%;
+            top: 44%
+        }
+
+        .s-eks {
+            left: 76%;
+            top: 17%
+        }
+
+        .s-gemini {
+            left: 89%;
+            top: 42%
+        }
+
+        .request-hero {
+            position: absolute;
+            z-index: 24;
+            width: clamp(13px, 1.7vw, 23px);
+            height: clamp(13px, 1.7vw, 23px);
+            border-radius: 50%;
+            left: 5%;
+            top: 62%;
+            opacity: 0;
+            background: radial-gradient(circle at 35% 30%, #fff 0 13%, #ffe07a 17%, #ff9f1c 58%, #ef5d0a);
+            box-shadow: 0 0 10px #ffd166, 0 0 28px rgba(255, 159, 28, .7);
+            transition: left .75s cubic-bezier(.4, 0, .2, 1), top .75s cubic-bezier(.4, 0, .2, 1), opacity .3s;
+        }
+
+        .request-hero::after {
+            content: "request";
+            position: absolute;
+            top: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffd88a;
+            font-size: clamp(.35rem, .52vw, .46rem);
+            font-weight: 800;
+        }
+
+        .request-hero.response {
+            background: radial-gradient(circle at 35% 30%, #fff 0 13%, #72f5c0 17%, #22c987 58%, #0a9963);
+            box-shadow: 0 0 10px #34d399, 0 0 28px rgba(52, 211, 153, .65);
+        }
+
+        .request-trail {
+            position: absolute;
+            z-index: 12;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #ffd166;
+            opacity: 0;
+        }
+
+        .eks-closeup {
+            position: absolute;
+            z-index: 18;
+            left: 53%;
+            right: 3%;
+            top: 42%;
+            bottom: 4%;
+            border: 1px solid rgba(91, 166, 246, .45);
+            border-radius: 16px;
+            background: rgba(6, 19, 36, .88);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, .42);
+            padding: clamp(7px, 1vw, 13px);
+            opacity: 0;
+            transform: translateY(20px) scale(.94);
+            pointer-events: none;
+            transition: .65s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .eks-closeup.show {
+            opacity: 1;
+            transform: none;
+        }
+
+        .eks-head {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #93caff;
+            font-size: clamp(.45rem, .7vw, .62rem);
+            font-weight: 900;
+        }
+
+        .eks-head img {
+            height: clamp(12px, 1.4vw, 18px);
+        }
+
+        .eks-state {
+            margin-left: auto;
+            color: #8ba1bb;
+            font-weight: 600;
+        }
+
+        .pod-stage {
+            height: calc(100% - 20px);
+            display: grid;
+            grid-template-columns: 17% 1fr;
+            gap: 7px;
+            margin-top: 6px;
+        }
+
+        .operator-tower {
+            border: 1px solid #345c8a;
+            border-radius: 9px;
+            background: #102943;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 4px;
+            transition: .3s;
+        }
+
+        .operator-tower.pulse {
+            border-color: #62d2ff;
+            box-shadow: 0 0 16px rgba(40, 175, 239, .42);
+        }
+
+        .operator-tower img {
+            height: clamp(18px, 2.3vw, 32px);
+        }
+
+        .operator-tower b {
+            font-size: clamp(.32rem, .52vw, .46rem);
+        }
+
+        .operator-tower small {
+            color: #7990aa;
+            font-size: clamp(.27rem, .42vw, .37rem);
+        }
+
+        .node-city {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .k8s-node {
+            position: relative;
+            min-width: 0;
+            border: 1px solid #3b6391;
+            border-radius: 10px;
+            background: linear-gradient(145deg, #142e4e, #0a2039);
+            padding: 5px;
+            opacity: 0;
+            transform: translateY(16px) scale(.88);
+            transition: .55s cubic-bezier(.22, 1, .36, 1);
+            box-shadow: 6px 9px 18px rgba(0, 0, 0, .3);
+        }
+
+        .k8s-node.show {
+            opacity: 1;
+            transform: none;
+        }
+
+        .node-head {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #bfe7ff;
+            font-size: clamp(.3rem, .48vw, .43rem);
+            font-weight: 900;
+        }
+
+        .node-head img {
+            height: clamp(9px, 1vw, 13px);
+        }
+
+        .node-status {
+            margin-left: auto;
+            color: #5de2ad;
+            font-size: .82em;
+        }
+
+        .node-capacity {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+            margin: 4px 0;
+        }
+
+        .capacity {
+            color: #8299b3;
+            font-size: clamp(.24rem, .37vw, .33rem);
+        }
+
+        .meter {
+            height: 3px;
+            margin-top: 1px;
+            overflow: hidden;
+            border-radius: 3px;
+            background: #182a40;
+        }
+
+        .meter i {
+            display: block;
+            height: 100%;
+            width: 22%;
+            border-radius: 3px;
+            background: #34d399;
+            transition: width .7s, background .7s;
+        }
+
+        .k8s-node.warm .meter i {
+            width: 62%;
+            background: #47c7ff;
+        }
+
+        .k8s-node.hot .meter i {
+            width: 96%;
+            background: #fb9f45;
+        }
+
+        .node-pods {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3px;
+            align-items: stretch;
+        }
+
+        .node-pod {
+            position: relative;
+            min-width: 0;
+            min-height: 35px;
+            border: 1px solid #3679a8;
+            border-radius: 6px;
+            background: #103456;
+            padding: 3px;
+            opacity: 0;
+            transform: scale(.72);
+            transition: .4s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .node-pod.show {
+            opacity: 1;
+            transform: none;
+        }
+
+        .node-pod.fail {
+            border-color: #ff718b;
+            background: #4b2034;
+            animation: podFail .35s infinite;
+        }
+
+        @keyframes podFail {
+            25% {
+                transform: translateX(-2px) rotate(-1deg)
+            }
+
+            75% {
+                transform: translateX(2px) rotate(1deg)
+            }
+        }
+
+        .node-pod h5 {
+            margin: 0 0 2px;
+            color: #d8efff;
+            font-size: clamp(.24rem, .37vw, .33rem);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .replica-chip {
+            height: 8px;
+            margin: 2px 0;
+            display: flex;
+            align-items: center;
+            padding: 0 2px;
+            border: 1px solid #4a9cce;
+            border-radius: 3px;
+            background: #17608c;
+            color: #cbedff;
+            font-size: clamp(.19rem, .29vw, .26rem);
+            opacity: 0;
+            transform: scaleX(.15);
+            transform-origin: left;
+            transition: .3s;
+        }
+
+        .replica-chip.show {
+            opacity: 1;
+            transform: scaleX(1);
+        }
+
+        .replica-chip.busy {
+            border-color: #ffd166;
+            background: #715821;
+            box-shadow: 0 0 5px rgba(255, 209, 102, .45);
+        }
+
+        .pending-pod {
+            position: absolute;
+            left: 44%;
+            bottom: 4px;
+            z-index: 8;
+            padding: 3px 7px;
+            border: 1px dashed #ffc65b;
+            border-radius: 6px;
+            background: #49391b;
+            color: #ffd98b;
+            font-size: clamp(.25rem, .4vw, .36rem);
+            opacity: 0;
+            transform: translateY(8px);
+            transition: .35s;
+        }
+
+        .pending-pod.show {
+            opacity: 1;
+            transform: none;
+        }
+
+        .cluster-autoscaler {
+            margin-top: 5px;
+            padding: 3px;
+            border: 1px solid #4f477e;
+            border-radius: 6px;
+            color: #bcb2ff;
+            font-size: clamp(.25rem, .38vw, .34rem);
+            opacity: .55;
+            transition: .3s;
+        }
+
+        .cluster-autoscaler.pulse {
+            opacity: 1;
+            border-color: #9c83ff;
+            box-shadow: 0 0 9px rgba(124, 92, 255, .38);
+        }
+
+        .traffic-person {
+            position: absolute;
+            z-index: 13;
+            font-size: clamp(8px, 1vw, 14px);
+            opacity: 0;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, .4));
+            pointer-events: none;
+        }
+
+        .request-trail {
+            position: absolute;
+            z-index: 12;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #ffd166;
+            opacity: 0;
+        }
+
+        .story-callout {
+            position: absolute;
+            z-index: 28;
+            left: 3%;
+            bottom: 6.5%;
+            max-width: 48%;
+            display: flex;
+            gap: 9px;
+            align-items: flex-start;
+            padding: clamp(7px, 1vw, 12px);
+            border: 1px solid #31547e;
+            border-radius: 13px;
+            background: rgba(8, 24, 44, .94);
+            box-shadow: 0 14px 34px rgba(0, 0, 0, .38);
+        }
+
+        .guide {
+            flex: 0 0 auto;
+            width: clamp(24px, 3vw, 38px);
+            height: clamp(24px, 3vw, 38px);
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, #ffd166, #ff8c42);
+            font-size: clamp(13px, 1.6vw, 21px);
+        }
+
+        .callout-copy b {
+            display: block;
+            color: #6fd3ff;
+            font-size: clamp(.43rem, .68vw, .6rem);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .callout-copy p {
+            margin: 2px 0 0;
+            color: #e8f2ff;
+            font-size: clamp(.49rem, .78vw, .7rem);
+            line-height: 1.35;
+        }
+
+        .story-metrics {
+            position: absolute;
+            z-index: 27;
+            right: 2.5%;
+            bottom: 6.5%;
+            display: flex;
+            gap: 5px;
+        }
+
+        .story-metric {
+            min-width: clamp(48px, 6vw, 77px);
+            padding: 5px 7px;
+            border: 1px solid #29466c;
+            border-radius: 9px;
+            background: rgba(7, 22, 40, .9);
+            text-align: center;
+        }
+
+        .story-metric b {
+            display: block;
+            font-size: clamp(.5rem, .8vw, .7rem);
+            color: #76d6ff;
+        }
+
+        .story-metric small {
+            color: #7890ab;
+            font-size: clamp(.3rem, .44vw, .39rem);
+            text-transform: uppercase;
+        }
+
+        .story-timeline {
+            position: absolute;
+            z-index: 31;
+            left: 2.5%;
+            right: 2.5%;
+            bottom: 2%;
+            height: 4px;
+            background: #20344f;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .story-timeline i {
+            display: block;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #28afef, #7c5cff, #34d399);
+            transition: width .18s linear;
+        }
+
+        .story-note {
+            max-width: 1240px;
+            margin: 12px auto 0;
+            color: #8495ad;
+            font-size: .73rem;
+            line-height: 1.45;
+            text-align: center;
+        }
+
+        .story-note a {
+            color: #66caff;
+        }
+
+        @media(max-width:720px) {
+            .story-shell {
+                padding: 0 6px
+            }
+
+            .story-player {
+                border-radius: 14px
+            }
+
+            .story-head {
+                gap: 5px
+            }
+
+            .story-button {
+                padding: 5px 7px
+            }
+
+            .story-brand small {
+                display: none
+            }
+
+            .service-label small {
+                display: none
+            }
+
+            .story-callout {
+                max-width: 60%
+            }
+
+            .story-metrics {
+                gap: 2px
+            }
+
+            .story-metric {
+                padding: 3px
+            }
+
+            .eks-closeup {
+                left: 45%
+            }
+        }
+    </style>
+    <style>
+        /* Split screen: journey on top, Kubernetes screen always visible below */
+        .world {
+            top: 19%;
+            bottom: auto;
+            height: 30%;
+        }
+
+        .island {
+            width: clamp(44px, 6.2vw, 84px);
+            height: clamp(32px, 4.5vw, 60px);
+        }
+
+        .eks-closeup,
+        .eks-closeup.show {
+            left: 2.5%;
+            right: 2.5%;
+            top: 51%;
+            bottom: 21%;
+            opacity: 1;
+            transform: none;
+            pointer-events: auto;
+        }
+
+        .pod-stage {
+            grid-template-columns: 13% minmax(0, 1fr) 32%;
+        }
+
+        .pending-pod {
+            left: 38%;
+        }
+
+        .story-callout,
+        .story-metrics {
+            bottom: 5%;
+        }
+
+        .k8s-terminal {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #2c4466;
+            border-radius: 9px;
+            background: #040a13;
+        }
+
+        .term-bar {
+            padding: 3px 7px;
+            color: #7f93ad;
+            background: #0d1828;
+            border-bottom: 1px solid #1e324d;
+            font-size: clamp(.28rem, .44vw, .4rem);
+            font-weight: 700;
+        }
+
+        .term-bar i {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin-right: 3px;
+            border-radius: 50%;
+            background: #fb7185;
+        }
+
+        .term-bar i:nth-child(2) {
+            background: #fbbf24;
+        }
+
+        .term-bar i:nth-child(3) {
+            background: #34d399;
+            margin-right: 6px;
+        }
+
+        #termOut {
+            flex: 1;
+            margin: 0;
+            padding: 4px 7px;
+            overflow: hidden;
+            white-space: pre;
+            color: #d5e4f5;
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: clamp(.26rem, .43vw, .41rem);
+            line-height: 1.38;
+        }
+
+        .t-cmd {
+            color: #7dd3fc;
+        }
+
+        .t-ok {
+            color: #4ade80;
+        }
+
+        .t-warn {
+            color: #fbbf24;
+        }
+
+        .t-bad {
+            color: #fb7185;
+        }
+
+        .t-dim {
+            color: #6b819c;
+        }
+    </style>
+    <style>
+        /* Real video controls */
+        .story-timeline {
+            height: 7px;
+            bottom: 1.6%;
+            cursor: pointer;
+            overflow: visible;
+        }
+
+        .story-timeline i {
+            border-radius: 5px;
+            transition: none;
+        }
+
+        .seek-marks {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .seek-marks b {
+            position: absolute;
+            top: -3px;
+            width: 2px;
+            height: 13px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, .55);
+        }
+
+        .story-button.paused {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            border: 0;
+        }
+
+        .story-player:fullscreen {
+            width: 100vw;
+            height: 100vh;
+            max-width: none;
+            aspect-ratio: auto;
+            border-radius: 0;
+            border: 0;
+        }
+
+        .story-player:-webkit-full-screen {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: auto;
+            border-radius: 0;
+        }
+    </style>
+    <style>
+        /* ===== Big-screen layout: player fills the window, text scales with the video ===== */
+        #page-demo>.wrap {
+            display: none;
+        }
+
+        .story-shell {
+            max-width: none;
+            margin: 10px auto 24px;
+            padding: 0 14px;
+        }
+
+        .story-note {
+            margin-top: 10px;
+        }
+
+        .story-player {
+            container-type: inline-size;
+            width: min(100%, calc((100vh - 84px) * 16 / 9));
+            margin: 0 auto;
+        }
+
+        /* Header row */
+        .story-player .story-head {
+            top: 1.8%;
+            left: 2%;
+            right: 2%;
+            gap: .8cqw;
+        }
+
+        .story-player .story-brand {
+            gap: .8cqw;
+        }
+
+        .story-player .story-brand-mark {
+            width: 2.8cqw;
+            height: 2.8cqw;
+            border-radius: .8cqw;
+        }
+
+        .story-player .story-brand b {
+            font-size: 1.2cqw;
+        }
+
+        .story-player .story-brand small {
+            font-size: .85cqw;
+        }
+
+        .story-player .story-button {
+            font-size: .95cqw;
+            padding: .55cqw 1.1cqw;
+            border-radius: .6cqw;
+        }
+
+        /* Chapter title */
+        .story-player .scene-title {
+            top: 9%;
+            width: 70%;
+        }
+
+        .story-player .scene-title .eyebrow {
+            font-size: .85cqw;
+        }
+
+        .story-player .scene-title h3 {
+            font-size: 2cqw;
+            margin-top: .2cqw;
+        }
+
+        /* Request journey (top band) */
+        .story-player .world {
+            top: 15.5%;
+            bottom: auto;
+            height: 27%;
+            left: 2.5%;
+            right: 2.5%;
+        }
+
+        .story-player .island {
+            width: 6.4cqw;
+            height: 4.5cqw;
+        }
+
+        .story-player .service-building .glyph {
+            font-size: 2.1cqw;
+        }
+
+        .story-player .service-label {
+            top: 100%;
+            bottom: auto;
+            margin-top: .25cqw;
+            font-size: .95cqw;
+        }
+
+        .story-player .service-label small {
+            font-size: .72cqw;
+        }
+
+        .story-player .traffic-person {
+            font-size: 1.35cqw;
+        }
+
+        .story-player .request-hero {
+            width: 1.7cqw;
+            height: 1.7cqw;
+        }
+
+        .story-player .request-hero::after {
+            font-size: .7cqw;
+        }
+
+        /* Kubernetes screen (middle band, the biggest area) */
+        .story-player .eks-closeup {
+            left: 2%;
+            right: 2%;
+            top: 44%;
+            bottom: 17.5%;
+            padding: .8cqw;
+            border-radius: 1cqw;
+        }
+
+        .story-player .eks-head {
+            font-size: 1.05cqw;
+            gap: .5cqw;
+        }
+
+        .story-player .eks-head img {
+            height: 1.4cqw;
+        }
+
+        .story-player .eks-state {
+            font-size: .95cqw;
+        }
+
+        .story-player .pod-stage {
+            height: calc(100% - 2.3cqw);
+            margin-top: .6cqw;
+            gap: .7cqw;
+            grid-template-columns: 11% minmax(0, 1fr) 33%;
+        }
+
+        .story-player .operator-tower {
+            gap: .4cqw;
+            padding: .5cqw;
+            border-radius: .7cqw;
+        }
+
+        .story-player .operator-tower img {
+            height: 3cqw;
+        }
+
+        .story-player .operator-tower b {
+            font-size: .9cqw;
+        }
+
+        .story-player .operator-tower small {
+            font-size: .75cqw;
+        }
+
+        .story-player .cluster-autoscaler {
+            font-size: .72cqw;
+            padding: .3cqw;
+            margin-top: .4cqw;
+        }
+
+        /* Nodes share the width evenly: 1 node = full width, 2 nodes = half each */
+        .story-player .node-city {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(0, 1fr);
+            grid-template-columns: none;
+            gap: .7cqw;
+        }
+
+        .story-player .k8s-node {
+            display: flex;
+            flex-direction: column;
+            padding: .6cqw;
+            border-radius: .8cqw;
+        }
+
+        .story-player .node-head {
+            font-size: 1.05cqw;
+            gap: .4cqw;
+        }
+
+        .story-player .node-head img {
+            height: 1.2cqw;
+        }
+
+        .story-player .node-capacity {
+            gap: .6cqw;
+            margin: .5cqw 0;
+        }
+
+        .story-player .capacity {
+            font-size: .78cqw;
+        }
+
+        .story-player .meter {
+            height: .4cqw;
+            margin-top: .2cqw;
+        }
+
+        .story-player .node-pods {
+            flex: 1;
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(0, 1fr);
+            grid-template-columns: none;
+            gap: .5cqw;
+        }
+
+        .story-player .node-pod {
+            min-height: 0;
+            padding: .45cqw;
+            border-radius: .6cqw;
+        }
+
+        .story-player .node-pod h5 {
+            font-size: .88cqw;
+            margin-bottom: .35cqw;
+        }
+
+        .story-player .replica-chip {
+            height: 1.75cqw;
+            margin: .3cqw 0;
+            padding: 0 .45cqw;
+            font-size: .76cqw;
+            border-radius: .35cqw;
+        }
+
+        .story-player .pending-pod {
+            left: 50%;
+            bottom: .9cqw;
+            transform: translateX(-50%);
+            font-size: .9cqw;
+            padding: .35cqw .8cqw;
+        }
+
+        /* kubectl terminal */
+        .story-player .k8s-terminal {
+            border-radius: .7cqw;
+        }
+
+        .story-player .term-bar {
+            font-size: .75cqw;
+            padding: .3cqw .6cqw;
+        }
+
+        .story-player .term-bar i {
+            width: .55cqw;
+            height: .55cqw;
+        }
+
+        .story-player #termOut {
+            font-size: .82cqw;
+            line-height: 1.34;
+            padding: .45cqw .7cqw;
+        }
+
+        /* Bottom band: narration + live numbers */
+        .story-player .story-callout {
+            left: 2%;
+            right: 37%;
+            bottom: 3.2%;
+            max-width: none;
+            gap: .8cqw;
+            padding: .8cqw 1cqw;
+            border-radius: 1cqw;
+        }
+
+        .story-player .guide {
+            width: 2.6cqw;
+            height: 2.6cqw;
+            font-size: 1.4cqw;
+        }
+
+        .story-player .callout-copy b {
+            font-size: .85cqw;
+        }
+
+        .story-player .callout-copy p {
+            font-size: 1.08cqw;
+            line-height: 1.38;
+            margin-top: .2cqw;
+        }
+
+        .story-player .story-metrics {
+            right: 2%;
+            bottom: 3.2%;
+            width: 33.5%;
+            gap: .5cqw;
+        }
+
+        .story-player .story-metric {
+            flex: 1;
+            min-width: 0;
+            padding: .55cqw .3cqw;
+            border-radius: .7cqw;
+        }
+
+        .story-player .story-metric b {
+            font-size: 1.55cqw;
+        }
+
+        .story-player .story-metric small {
+            font-size: .72cqw;
+        }
+
+        .story-player .story-timeline {
+            left: 2%;
+            right: 2%;
+            bottom: 1.1%;
+            height: .45cqw;
+        }
+
+        /* Fullscreen keeps the same proportions on any monitor */
+        .story-player:fullscreen {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+    <style>
+        /* ===== Pipeline journey design ===== */
+        .story-sky,
+        .story-stars,
+        .world-plane,
+        .road-svg {
+            display: none !important;
+        }
+
+        .story-player {
+            background: radial-gradient(120% 70% at 50% 0%, #13294a 0%, #0a1628 55%, #070f1d 100%) !important;
+        }
+
+        .story-player .world.pipeline {
+            perspective: none;
+        }
+
+        .pipeline .lane {
+            position: absolute;
+            left: 1%;
+            right: 1%;
+            height: 18%;
+            border-radius: 1cqw;
+            border: 1px dashed rgba(120, 170, 230, .18);
+        }
+
+        .pipeline .lane span {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: .7cqw;
+            font-weight: 800;
+            letter-spacing: .18em;
+            color: rgba(150, 190, 240, .45);
+        }
+
+        .pipeline .lane-req {
+            top: 25%;
+            background: linear-gradient(90deg, rgba(56, 189, 248, .05), rgba(56, 189, 248, .11));
+        }
+
+        .pipeline .lane-req span {
+            right: 1cqw;
+        }
+
+        .pipeline .lane-res {
+            top: 57%;
+            background: linear-gradient(90deg, rgba(52, 211, 153, .11), rgba(52, 211, 153, .04));
+        }
+
+        .pipeline .lane-res span {
+            left: 1cqw;
+            color: rgba(110, 231, 183, .45);
+        }
+
+        .pipeline .track {
+            position: absolute;
+            left: 6%;
+            right: 6%;
+            top: 50%;
+            height: .35cqw;
+            transform: translateY(-50%);
+            border-radius: 1cqw;
+            background: #1c3354;
+        }
+
+        .pipeline .track-fill {
+            display: block;
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            box-shadow: 0 0 1cqw rgba(56, 189, 248, .6);
+            transition: width .6s ease;
+        }
+
+        .story-player .island.pipe-card {
+            left: var(--x);
+            top: 50%;
+            width: 7.6cqw;
+            height: auto;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            padding: .9cqw .5cqw .7cqw;
+            border-radius: 1.1cqw;
+            text-align: center;
+            background: linear-gradient(160deg, rgba(30, 52, 86, .95), rgba(14, 28, 50, .95));
+            border: 1px solid #2c4a73;
+            box-shadow: 0 .6cqw 1.6cqw rgba(0, 0, 0, .4);
+            transition: transform .45s cubic-bezier(.22, 1, .36, 1), border-color .3s, box-shadow .3s, opacity .3s, filter .3s;
+        }
+
+        .story-player .island.pipe-card.focus {
+            transform: translate(-50%, -62%) scale(1.12);
+            border-color: #5ccbff;
+            box-shadow: 0 0 2.4cqw rgba(56, 189, 248, .55), 0 .8cqw 2cqw rgba(0, 0, 0, .45);
+            filter: none;
+        }
+
+        .story-player .island.pipe-card.dim {
+            opacity: .55;
+            filter: saturate(.6);
+        }
+
+        .pipe-card .step-no {
+            position: absolute;
+            top: -.8cqw;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1.6cqw;
+            height: 1.6cqw;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: .78cqw;
+            font-weight: 900;
+            color: #0a1628;
+            background: #7dd3fc;
+            box-shadow: 0 0 .8cqw rgba(125, 211, 252, .6);
+        }
+
+        .pipe-card.focus .step-no {
+            background: #fbbf24;
+            box-shadow: 0 0 1cqw rgba(251, 191, 36, .8);
+        }
+
+        .pipe-card .card-icon {
+            width: 3.4cqw;
+            height: 3.4cqw;
+            margin: .2cqw auto .5cqw;
+            display: grid;
+            place-items: center;
+            border-radius: .8cqw;
+            background: rgba(8, 20, 38, .85);
+            color: #7dd3fc;
+        }
+
+        .pipe-card .card-icon img {
+            width: 64%;
+            height: 64%;
+            object-fit: contain;
+        }
+
+        .pipe-card .card-icon .card-svg {
+            width: 64%;
+            height: 64%;
+            fill: currentColor;
+        }
+
+        .story-player .pipe-card .service-label {
+            position: static;
+            transform: none;
+            width: auto;
+            margin: 0;
+            font-size: .92cqw;
+            font-weight: 800;
+            color: #e6f0ff;
+            white-space: nowrap;
+        }
+
+        .story-player .pipe-card .service-label small {
+            display: block;
+            margin-top: .15cqw;
+            font-size: .7cqw;
+            font-weight: 600;
+            color: #8aa3c2;
+        }
+
+        .story-player .traffic-person {
+            position: absolute;
+            z-index: 9;
+            width: 1.15cqw;
+            height: 1.85cqw;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            filter: drop-shadow(0 .2cqw .3cqw rgba(0, 0, 0, .5));
+        }
+
+        .story-player .traffic-person svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .story-player .traffic-person.answer {
+            width: .9cqw;
+            height: .9cqw;
+        }
+
+        .story-player .traffic-person.answer svg circle {
+            fill: #34d399;
+        }
+
+        .story-player .traffic-person.answer {
+            filter: drop-shadow(0 0 .5cqw rgba(52, 211, 153, .9));
+        }
+
+        .story-player .request-hero {
+            width: 1.5cqw;
+            height: 1.5cqw;
+            top: 50% !important;
+            transform: translate(-50%, -50%);
+            z-index: 8;
+        }
+
+        .story-player .request-hero::after {
+            content: none;
+        }
+    </style>
+    <style>
+        /* ===== Professional architecture page ===== */
+        .ax {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 34px 24px 60px;
+        }
+
+        .ax-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        .ax-eyebrow {
+            color: #7dd3fc;
+            font-size: .74rem;
+            font-weight: 800;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+
+        .ax-head h2 {
+            margin: 6px 0 6px;
+            font-size: 1.9rem;
+            letter-spacing: -.02em;
+        }
+
+        .ax-head p {
+            margin: 0;
+            max-width: 640px;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .ax-legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: .8rem;
+            color: var(--muted);
+        }
+
+        .ax-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .ax-legend i {
+            width: 22px;
+            height: 3px;
+            border-radius: 3px;
+        }
+
+        .lg-req {
+            background: #38bdf8;
+        }
+
+        .lg-dep {
+            background: #a78bfa;
+        }
+
+        .lg-sec {
+            background: #34d399;
+        }
+
+        .ax-band {
+            position: relative;
+            margin-bottom: 18px;
+            padding: 18px 18px 16px;
+            border: 1px solid #22344f;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(20, 32, 52, .85), rgba(13, 22, 38, .85));
+        }
+
+        .ax-band-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: .95rem;
+            font-weight: 800;
+        }
+
+        .ax-band-title small {
+            color: #7f93ad;
+            font-weight: 600;
+        }
+
+        .ax-num {
+            width: 24px;
+            height: 24px;
+            display: grid;
+            place-items: center;
+            border-radius: 7px;
+            font-size: .75rem;
+            color: #0a1628;
+            background: #7dd3fc;
+        }
+
+        .ax-flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .ax-zone {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 18px 10px 10px;
+            border-radius: 12px;
+            border: 1px dashed;
+        }
+
+        .ax-zone-edge {
+            border-color: rgba(251, 146, 60, .5);
+            background: rgba(251, 146, 60, .05);
+        }
+
+        .ax-zone-aws {
+            border-color: rgba(255, 153, 0, .5);
+            background: rgba(255, 153, 0, .05);
+        }
+
+        .ax-zone-label {
+            position: absolute;
+            top: -9px;
+            left: 12px;
+            padding: 1px 9px;
+            border-radius: 20px;
+            font-size: .66rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            background: #0f1a2c;
+            color: #fbbf77;
+            border: 1px solid rgba(255, 153, 0, .45);
+        }
+
+        .ax-step {
+            position: relative;
+        }
+
+        .ax-badge {
+            position: absolute;
+            z-index: 2;
+            top: -9px;
+            right: -7px;
+            width: 20px;
+            height: 20px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: .68rem;
+            font-weight: 900;
+            color: #0a1628;
+            background: #38bdf8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, .5);
+        }
+
+        .ax-badge-inline {
+            position: static;
+            margin-left: 4px;
+        }
+
+        .ax-arrow {
+            flex: 0 0 18px;
+            height: 2px;
+            position: relative;
+            background: #38bdf8;
+            opacity: .75;
+        }
+
+        .ax-arrow::after {
+            content: "";
+            position: absolute;
+            right: -2px;
+            top: -4px;
+            border: 5px solid transparent;
+            border-left: 6px solid #38bdf8;
+            border-right: 0;
+        }
+
+        .ax-arrow.dep {
+            background: #a78bfa;
+        }
+
+        .ax-arrow.dep::after {
+            border-left-color: #a78bfa;
+        }
+
+        .ax-arrow.sec {
+            background: #34d399;
+        }
+
+        .ax-arrow.sec::after {
+            border-left-color: #34d399;
+        }
+
+        .ax-card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 150px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #2b4466;
+            background: #0f1d33;
+            transition: transform .2s, border-color .2s, box-shadow .2s;
+        }
+
+        .ax-card:hover {
+            transform: translateY(-2px);
+            border-color: #4fb8f0;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+        }
+
+        .ax-ico {
+            flex: 0 0 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            border-radius: 9px;
+            background: #081426;
+        }
+
+        .ax-ico img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        .ax-txt b {
+            display: block;
+            font-size: .86rem;
+        }
+
+        .ax-txt small {
+            color: #8296b1;
+            font-size: .72rem;
+        }
+
+        .ax-tag {
+            position: absolute;
+            top: -8px;
+            right: 8px;
+            padding: 0 7px;
+            border-radius: 20px;
+            font-size: .6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: #c4b5fd;
+            background: #1e1a3a;
+            border: 1px solid #5b4fa0;
+        }
+
+        .ax-note {
+            margin: 12px 0 0;
+            color: #6f849f;
+            font-size: .74rem;
+        }
+
+        .ax-cluster {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 16px;
+        }
+
+        .ax-col {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ax-col-title {
+            color: #7f93ad;
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .ax-node {
+            border: 1px solid #36557e;
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(8, 20, 38, .7);
+        }
+
+        .ax-node-head {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 10px;
+            font-size: .82rem;
+            font-weight: 800;
+            color: #bfe0ff;
+        }
+
+        .ax-node-head img {
+            width: 16px;
+        }
+
+        .ax-pods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .ax-pod {
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #2f6a9c;
+            background: #0f2c4a;
+        }
+
+        .ax-pod b {
+            display: block;
+            font-size: .82rem;
+        }
+
+        .ax-pod small {
+            color: #8aa6c4;
+            font-size: .7rem;
+        }
+
+        .ax-reps {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .ax-reps span {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: .66rem;
+            color: #d6f0ff;
+            background: #17608c;
+            border: 1px solid #4a9cce;
+        }
+
+        .ax-app {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ax-grid2 {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 18px;
+        }
+
+        .ax-grid2 .ax-band {
+            margin-bottom: 0;
+        }
+
+        .ax-flow-dep .ax-card {
+            min-width: 0;
+            flex: 1 1 140px;
+        }
+
+        .ax-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .ax-stats div {
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #22344f;
+            background: rgba(15, 26, 44, .8);
+            text-align: center;
+        }
+
+        .ax-stats b {
+            display: block;
+            font-size: 1.25rem;
+            color: #7dd3fc;
+        }
+
+        .ax-stats span {
+            color: #8296b1;
+            font-size: .76rem;
+        }
+
+        @media (max-width: 980px) {
+
+            .ax-cluster,
+            .ax-grid2 {
+                grid-template-columns: 1fr;
+            }
+
+            .ax-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .ax-zone {
+                flex-wrap: wrap;
+            }
+
+            .ax-arrow {
+                display: none;
+            }
+
+            .ax-pods {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <style>
+        /* Small screens: the tab row scrolls inside the nav instead of widening the page */
+        @media (max-width: 760px) {
+            .nav {
+                overflow-x: auto;
+                gap: 4px;
+                padding: 10px 12px;
+                scrollbar-width: none;
+            }
+
+            .nav::-webkit-scrollbar {
+                display: none;
+            }
+
+            .nav .brand {
+                flex: 0 0 auto;
+                margin-right: 8px;
+            }
+
+            .nav button {
+                flex: 0 0 auto;
+                padding: 8px 10px;
+            }
+        }
+
+        /* ===== Deploy guide page ===== */
+        .dp {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 34px 24px 60px;
+        }
+
+        .dp-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .dp-eyebrow {
+            color: #7dd3fc;
+            font-size: .74rem;
+            font-weight: 800;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+
+        .dp-head h2 {
+            margin: 6px 0;
+            font-size: 1.9rem;
+            letter-spacing: -.02em;
+        }
+
+        .dp-head p {
+            margin: 0;
+            max-width: 600px;
+            color: var(--muted);
+        }
+
+        .dp-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: .82rem;
+            color: var(--muted);
+        }
+
+        .dp-bar {
+            width: 160px;
+            height: 7px;
+            border-radius: 6px;
+            background: #1a2b45;
+            overflow: hidden;
+        }
+
+        .dp-bar i {
+            display: block;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #38bdf8, #34d399);
+            transition: width .3s;
+        }
+
+        .dp-reset,
+        .dp-copy {
+            border: 1px solid #2b4466;
+            background: #0f1d33;
+            color: var(--text);
+            border-radius: 7px;
+            padding: 4px 10px;
+            font: inherit;
+            font-size: .76rem;
+            cursor: pointer;
+        }
+
+        .dp-reset:hover,
+        .dp-copy:hover {
+            border-color: #38bdf8;
+        }
+
+        .dp-phase {
+            margin: 22px 0 10px;
+            color: #7f93ad;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+
+        .dp-step {
+            margin-bottom: 12px;
+            padding: 18px 20px;
+            border: 1px solid #22344f;
+            border-radius: 14px;
+            background: linear-gradient(180deg, rgba(20, 32, 52, .85), rgba(13, 22, 38, .85));
+            transition: border-color .2s;
+        }
+
+        .dp-step.done {
+            border-color: rgba(52, 211, 153, .5);
+        }
+
+        .dp-step-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .dp-no {
+            flex: 0 0 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            border-radius: 9px;
+            font-weight: 900;
+            color: #071426;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+        }
+
+        .dp-step.done .dp-no {
+            background: #34d399;
+        }
+
+        .dp-step-head h3 {
+            margin: 0;
+            flex: 1;
+            font-size: 1.05rem;
+        }
+
+        .dp-where {
+            font-size: .66rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            padding: 3px 9px;
+            border-radius: 20px;
+        }
+
+        .w-aws {
+            color: #ffb84d;
+            background: rgba(255, 153, 0, .1);
+            border: 1px solid rgba(255, 153, 0, .35);
+        }
+
+        .w-gh {
+            color: #d8dee9;
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .2);
+        }
+
+        .w-term {
+            color: #7dd3fc;
+            background: rgba(56, 189, 248, .1);
+            border: 1px solid rgba(56, 189, 248, .35);
+        }
+
+        .dp-check {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .78rem;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .dp-check input {
+            width: 16px;
+            height: 16px;
+            accent-color: #34d399;
+            cursor: pointer;
+        }
+
+        .dp-step h3+* {
+            margin-top: 0;
+        }
+
+        .dp-step>h3 {
+            margin: 14px 0 6px;
+            font-size: .9rem;
+            color: #cfe2fb;
+        }
+
+        .dp-step ol {
+            margin: 6px 0 10px;
+            padding-left: 22px;
+        }
+
+        .dp-step li {
+            margin: 3px 0;
+        }
+
+        .dp-step p {
+            margin: 6px 0;
+            color: #d3dff0;
+        }
+
+        .dp-step table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: .86rem;
+        }
+
+        .dp-step th,
+        .dp-step td {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid #22344f;
+        }
+
+        .dp-step th {
+            color: var(--muted);
+            font-size: .7rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .dp-code {
+            position: relative;
+            margin: 10px 0;
+            border: 1px solid #1c2e4a;
+            border-radius: 10px;
+            background: #050b16;
+        }
+
+        .dp-code-label {
+            padding: 6px 12px;
+            font-size: .7rem;
+            color: var(--muted);
+            border-bottom: 1px solid #1c2e4a;
+        }
+
+        .dp-copy {
+            position: absolute;
+            top: 3px;
+            right: 6px;
+        }
+
+        .dp-code pre {
+            margin: 0;
+            padding: 12px 14px;
+            overflow-x: auto;
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: .82rem;
+            line-height: 1.55;
+            color: #d5e4f5;
+        }
+
+        .dp-note {
+            padding: 9px 13px;
+            border-radius: 9px;
+            font-size: .84rem;
+            border-left: 3px solid #38bdf8;
+            background: rgba(56, 189, 248, .07);
+        }
+
+        .dp-note.warn {
+            border-left-color: #fbbf24;
+            background: rgba(251, 191, 36, .07);
+        }
+
+        .dp-note.danger {
+            border-left-color: #fb7185;
+            background: rgba(251, 113, 133, .07);
         }
     </style>
 </head>
 
 <body>
 
-    <header>
-        <h1>🚀 KubeRay Gemini Agent — Project Architecture</h1>
-        <p>AI chatbot on AWS EKS using KubeRay (Ray Serve), provisioned with Terraform, shipped via GitHub Actions.</p>
-    </header>
+    <!-- ===== TOP NAV ===== -->
+    <nav class="nav">
+        <div class="brand">
+            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg" alt="">
+            Ray &amp; KubeRay
+        </div>
+        <button data-page="home" class="active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M3 9.5 12 3l9 6.5V21H3z" />
+                <path d="M9 21v-7h6v7" />
+            </svg>
+            Home
+        </button>
+        <button data-page="concepts">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 2 2 7l10 5 10-5-10-5z" />
+                <path d="m2 17 10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            Concepts
+        </button>
+        <button data-page="architecture">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Architecture
+        </button>
+        <button data-page="demo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="m10 8 6 4-6 4z" fill="currentColor" />
+            </svg>
+            Demo
+        </button>
+        <button data-page="deploy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 2v13" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M4 21h16" />
+            </svg>
+            Deploy
+        </button>
+    </nav>
 
-    <div class="legend">
-        <span><i class="deploy"></i> Build &amp; Deploy flow</span>
-        <span><i class="runtime"></i> Runtime request flow</span>
-        <span><i class="secret"></i> Secret flow (no keys in Git)</span>
-    </div>
-
-    <div class="diagram">
-
-        <!-- CI/CD tier -->
-        <p class="tier-label">Source &amp; CI/CD</p>
-        <div class="row">
-            <div class="node accent-gh">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" alt="Git" />
-                <h3>Developer</h3>
-                <small>git push to GitHub repo</small>
+    <!-- ===== HOME ===== -->
+    <section class="page active" id="page-home">
+        <div class="hero">
+            <div class="orbit">
+                <div class="core"><img
+                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                        alt="KubeRay"></div>
+                <div class="chip3d c1"><img
+                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Ray">
+                </div>
+                <div class="chip3d c2"><img
+                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original-wordmark.svg"
+                        alt="AWS"></div>
+                <div class="chip3d c3"><img
+                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/terraform/terraform-original.svg"
+                        alt="Terraform"></div>
+                <div class="chip3d c4"><img
+                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/googlecloud/googlecloud-original.svg"
+                        alt="Gemini"></div>
             </div>
-            <div class="arrow">→</div>
-            <div class="node accent-gh">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" alt="GitHub"
-                    style="filter:invert(1)" />
-                <h3>GitHub Actions</h3>
-                <small>ci.yml &amp; deploy.yml<br />OIDC auth · no static keys</small>
+            <h1>Welcome to the Ray &amp; KubeRay Project</h1>
+            <p>An AI chatbot served with <b>Ray Serve</b> on <b>KubeRay</b> (AWS EKS), powered by Google Gemini —
+                provisioned with Terraform and shipped with GitHub Actions.</p>
+            <div class="hero-cta">
+                <button data-page="architecture">🧩 View Architecture</button>
+                <button class="ghost" data-page="demo">🎬 Watch Demo</button>
             </div>
-            <div class="arrow">→</div>
-            <div class="node accent-tf">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/terraform/terraform-original.svg"
-                    alt="Terraform" />
-                <h3>Terraform</h3>
-                <small>modular IaC<br />vpc · eks · ecr · secrets</small>
-            </div>
-            <div class="arrow">→</div>
-            <div class="node accent-aws">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker" />
-                <h3>Docker → ECR</h3>
-                <small>multi-stage build<br />React UI + Ray app</small>
+            <div class="stats">
+                <div class="stat"><b>1→4</b><span>Ray Serve replicas</span></div>
+                <div class="stat"><b>Auto</b><span>Pod + node scaling</span></div>
+                <div class="stat"><b>0</b><span>Keys in Git (OIDC)</span></div>
+                <div class="stat"><b>EKS</b><span>on AWS</span></div>
             </div>
         </div>
+    </section>
 
-        <div class="down">⬇</div>
-
-        <!-- AWS tier -->
-        <p class="tier-label">AWS Cloud · us-east-1</p>
-        <div class="cluster" data-title="☸️ Amazon EKS Cluster (YashAcademy)"
-            style="border-color:var(--aws);background:rgba(255,153,0,.04)">
-            <span class="badge">VPC · public + private subnets · NLB</span>
-
-            <div class="row">
-                <div class="node accent-aws">
-                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original-wordmark.svg"
-                        alt="AWS" />
-                    <h3>Amazon EKS</h3>
-                    <small>managed Kubernetes<br />t3.medium node group</small>
-                </div>
-                <div class="node accent-aws">
-                    <span class="emoji">🗄️</span>
-                    <h3>Amazon ECR</h3>
-                    <small>container registry<br />kuberay-agent image</small>
-                </div>
-                <div class="node accent-ok">
-                    <span class="emoji">🔐</span>
-                    <h3>AWS Secrets Manager</h3>
-                    <small>gemini-api-key<br />set manually in console</small>
-                </div>
-                <div class="node accent-aws">
-                    <span class="emoji">🖥️</span>
-                    <h3>Bastion / Client</h3>
-                    <small>EC2 jump box<br />kubectl + eksctl</small>
-                </div>
-            </div>
-
-            <div class="down" style="color:var(--k8s)">⬇</div>
-
-            <!-- Operators / runtime inside the cluster -->
-            <div class="cluster" data-title="KubeRay + Operators">
-                <div class="row">
-                    <div class="node accent-ray">
-                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
-                            alt="KubeRay" />
-                        <h3>KubeRay Operator</h3>
-                        <small>Helm · manages RayService</small>
+    <!-- ===== CONCEPTS ===== -->
+    <section class="page" id="page-concepts">
+        <div class="wrap">
+            <h2>Key concepts: Ray &amp; KubeRay</h2>
+            <p class="sub">The important pieces that make this project scale and self-heal.</p>
+            <div class="cards">
+                <div class="concept">
+                    <div class="ico"><img
+                            src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="">
                     </div>
-                    <div class="node accent-ok">
-                        <span class="emoji">🔄</span>
-                        <h3>External Secrets Operator</h3>
-                        <small>syncs Secrets Manager →<br />k8s Secret via Pod Identity</small>
-                    </div>
+                    <h3>Ray Serve</h3>
+                    <p>A scalable model-serving library. The agent is a Serve deployment wrapping FastAPI; each
+                        <b>replica</b> is a worker process handling requests.
+                    </p>
+                    <span class="tag">replicas</span>
                 </div>
-
-                <div class="down" style="color:var(--ray)">⬇</div>
-
-                <div class="row">
-                    <div class="node accent-ray">
-                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg"
-                            alt="Ray Serve" />
-                        <h3>Ray Serve · FastAPI</h3>
-                        <small>Agent deployment<br />autoscales 1→4 replicas</small>
+                <div class="concept">
+                    <div class="ico"><img
+                            src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                            alt=""></div>
+                    <h3>KubeRay Operator</h3>
+                    <p>A Kubernetes controller that watches the <code>RayService</code> CR and creates/manages Ray pods
+                        (head + workers) to match the desired state.</p>
+                    <span class="tag">operator pattern</span>
+                </div>
+                <div class="concept">
+                    <div class="ico"><img
+                            src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                            alt=""></div>
+                    <h3>Head &amp; Worker pods</h3>
+                    <p>The <b>head pod</b> runs GCS, the dashboard, and the Serve controller. <b>Worker pods</b> run the
+                        Serve replicas that do the actual work.</p>
+                    <span class="tag">pods</span>
+                </div>
+                <div class="concept">
+                    <div class="ico"><img
+                            src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="">
                     </div>
-                    <div class="node accent-ray">
-                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg"
-                            alt="React" />
-                        <h3>React UI</h3>
-                        <small>Vite + TypeScript<br />served from /</small>
-                    </div>
+                    <h3>Two-layer autoscaling</h3>
+                    <p>Ray Serve adds <b>replicas</b> based on queue size first; the Ray autoscaler then adds <b>worker
+                            pods</b>; the cluster autoscaler adds <b>nodes</b> if pods can't fit.</p>
+                    <span class="tag">autoscaling</span>
+                </div>
+                <div class="concept">
+                    <div class="ico"><img
+                            src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                            alt=""></div>
+                    <h3>Self-healing</h3>
+                    <p>If a pod dies, KubeRay/Kubernetes detects the gap and schedules a replacement so the service
+                        keeps serving — zero manual intervention.</p>
+                    <span class="tag">resilience</span>
+                </div>
+                <div class="concept">
+                    <div class="ico"><img
+                            src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/googlecloud/googlecloud-original.svg"
+                            alt=""></div>
+                    <h3>Zero-downtime upgrades</h3>
+                    <p>A <code>RayService</code> brings up a new cluster, waits until it's ready, then shifts traffic —
+                        so deploys don't drop requests.</p>
+                    <span class="tag">HA</span>
                 </div>
             </div>
         </div>
+    </section>
 
-        <div class="down" style="color:var(--gemini)">⬇</div>
+    <!-- ===== ARCHITECTURE ===== -->
+    <section class="page" id="page-architecture">
+        <div class="ax">
+            <header class="ax-head">
+                <div>
+                    <span class="ax-eyebrow">System design</span>
+                    <h2>Architecture overview</h2>
+                    <p>A Ray Serve AI agent on Amazon EKS, managed by KubeRay, provisioned with Terraform and delivered
+                        with GitHub Actions.</p>
+                </div>
+                <div class="ax-legend">
+                    <span><i class="lg-req"></i>Request path</span>
+                    <span><i class="lg-dep"></i>Deploy path</span>
+                    <span><i class="lg-sec"></i>Secret path</span>
+                </div>
+            </header>
 
-        <!-- External AI -->
-        <p class="tier-label">AI Model API</p>
-        <div class="row">
-            <div class="node accent-gem">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/googlecloud/googlecloud-original.svg"
-                    alt="Google Gemini" />
-                <h3>Google Gemini</h3>
-                <small>gemini-3.5-flash<br />via google-genai SDK</small>
+            <!-- Request path -->
+            <div class="ax-band">
+                <div class="ax-band-title"><span class="ax-num">A</span>Request path <small>user → answer</small></div>
+                <div class="ax-flow">
+                    <div class="ax-step"><span class="ax-badge">1</span>
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%237dd3fc'><circle cx='9' cy='7' r='3.2'/><path d='M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5z'/><circle cx='17' cy='8' r='2.6' opacity='.6'/><path d='M14.6 13.7c3.5-.6 6.9 1.9 6.9 6.3h-4.4' opacity='.6'/></svg>"
+                                    alt="Users"></div>
+                            <div class="ax-txt"><b>Users</b><small>web browser</small></div>
+                        </div>
+                    </div>
+                    <div class="ax-arrow"></div>
+                    <div class="ax-zone ax-zone-edge"><span class="ax-zone-label">Edge</span>
+                        <div class="ax-step"><span class="ax-badge">2</span>
+                            <div class="ax-card">
+                                <div class="ax-ico"><img
+                                        src="https://awsfundamentals.com/assets/aws-icons/Arch_Amazon-Route-53_64.svg"
+                                        alt="Route 53"></div>
+                                <div class="ax-txt"><b>Route 53</b><small>DNS</small></div>
+                            </div>
+                        </div>
+                        <div class="ax-arrow"></div>
+                        <div class="ax-step"><span class="ax-badge">3</span>
+                            <div class="ax-card">
+                                <div class="ax-ico"><img
+                                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cloudflare/cloudflare-original.svg"
+                                        alt="Cloudflare"></div>
+                                <div class="ax-txt"><b>Cloudflare</b><small>CDN + edge WAF</small></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ax-arrow"></div>
+                    <div class="ax-zone ax-zone-aws"><span class="ax-zone-label">AWS · VPC</span>
+                        <div class="ax-step"><span class="ax-badge">4</span>
+                            <div class="ax-card">
+                                <div class="ax-ico"><img
+                                        src="https://awsfundamentals.com/assets/aws-icons/Arch_AWS-WAF_64.svg"
+                                        alt="AWS WAF"></div>
+                                <div class="ax-txt"><b>AWS WAF</b><small>security rules</small></div>
+                            </div>
+                        </div>
+                        <div class="ax-arrow"></div>
+                        <div class="ax-step"><span class="ax-badge">5</span>
+                            <div class="ax-card">
+                                <div class="ax-ico"><img
+                                        src="https://awsfundamentals.com/assets/aws-icons/Arch_Amazon-API-Gateway_64.svg"
+                                        alt="API Gateway"></div>
+                                <div class="ax-txt"><b>API Gateway</b><small>auth · routing</small></div>
+                            </div>
+                        </div>
+                        <div class="ax-arrow"></div>
+                        <div class="ax-step"><span class="ax-badge">6</span>
+                            <div class="ax-card">
+                                <div class="ax-ico"><img
+                                        src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2.2' stroke-linecap='round'><path d='M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1 1'/><path d='M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1-1'/></svg>"
+                                        alt="VPC Link"></div>
+                                <div class="ax-txt"><b>VPC Link</b><small>private tunnel</small></div>
+                            </div>
+                        </div>
+                        <div class="ax-arrow"></div>
+                        <div class="ax-step"><span class="ax-badge">7</span>
+                            <div class="ax-card">
+                                <div class="ax-ico"><img
+                                        src="https://awsfundamentals.com/assets/aws-icons/Arch_Elastic-Load-Balancing_64.svg"
+                                        alt="NLB"></div>
+                                <div class="ax-txt"><b>NLB</b><small>port 80 → 8000</small></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ax-arrow"></div>
+                    <div class="ax-step"><span class="ax-badge">9</span>
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/googlecloud/googlecloud-original.svg"
+                                    alt="Gemini"></div>
+                            <div class="ax-txt"><b>Gemini</b><small>LLM response</small></div>
+                        </div>
+                    </div>
+                </div>
+                <p class="ax-note">Steps 3–6 are the target edge layer. The repository currently provisions the NLB,
+                    EKS, KubeRay and Ray Serve.</p>
+            </div>
+
+            <!-- EKS cluster -->
+            <div class="ax-band">
+                <div class="ax-band-title"><span class="ax-num">B</span>Amazon EKS cluster <small>YashAcademy ·
+                        namespace ai-agent</small><span class="ax-badge ax-badge-inline">8</span></div>
+                <div class="ax-cluster">
+                    <div class="ax-col">
+                        <span class="ax-col-title">Control & operators</span>
+                        <div class="ax-card"><span class="ax-tag">Helm</span>
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                    alt="KubeRay Operator"></div>
+                            <div class="ax-txt"><b>KubeRay Operator</b><small>reconciles RayService</small></div>
+                        </div>
+                        <div class="ax-card"><span class="ax-tag">Helm</span>
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                    alt="External Secrets"></div>
+                            <div class="ax-txt"><b>External Secrets</b><small>syncs Secrets Manager</small></div>
+                        </div>
+                        <div class="ax-card"><span class="ax-tag">target</span>
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                    alt="Cluster Autoscaler"></div>
+                            <div class="ax-txt"><b>Cluster Autoscaler</b><small>adds / removes nodes</small></div>
+                        </div>
+                    </div>
+                    <div class="ax-col ax-col-main">
+                        <span class="ax-col-title">Runtime · node → pod → replica</span>
+                        <div class="ax-node">
+                            <div class="ax-node-head"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                    alt="">Worker node · t3.medium</div>
+                            <div class="ax-pods">
+                                <div class="ax-pod"><b>Ray head pod</b><small>GCS · dashboard · Serve controller</small>
+                                </div>
+                                <div class="ax-pod"><b>Ray worker pod</b><small>autoscaled by KubeRay</small>
+                                    <div class="ax-reps"><span>Serve replica</span><span>Serve
+                                            replica</span><span>+</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ax-app">
+                            <div class="ax-card">
+                                <div class="ax-ico"><img
+                                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg"
+                                        alt="Ray Serve · FastAPI"></div>
+                                <div class="ax-txt"><b>Ray Serve · FastAPI</b><small>1 → 4 replicas</small></div>
+                            </div>
+                            <div class="ax-card">
+                                <div class="ax-ico"><img
+                                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg"
+                                        alt="React UI"></div>
+                                <div class="ax-txt"><b>React UI</b><small>Vite · served at /</small></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Platform -->
+            <div class="ax-grid2">
+                <div class="ax-band">
+                    <div class="ax-band-title"><span class="ax-num">C</span>Deploy path <small>code → cluster</small>
+                    </div>
+                    <div class="ax-flow ax-flow-dep">
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
+                                    alt="GitHub Actions"></div>
+                            <div class="ax-txt"><b>GitHub Actions</b><small>OIDC · no static keys</small></div>
+                        </div>
+                        <div class="ax-arrow dep"></div>
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/terraform/terraform-original.svg"
+                                    alt="Terraform"></div>
+                            <div class="ax-txt"><b>Terraform</b><small>VPC · EKS · ECR · IAM</small></div>
+                        </div>
+                        <div class="ax-arrow dep"></div>
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg"
+                                    alt="Docker → ECR"></div>
+                            <div class="ax-txt"><b>Docker → ECR</b><small>image build + push</small></div>
+                        </div>
+                        <div class="ax-arrow dep"></div>
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                    alt="Kustomize"></div>
+                            <div class="ax-txt"><b>Kustomize</b><small>kubectl apply -k</small></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ax-band">
+                    <div class="ax-band-title"><span class="ax-num">D</span>Secret path <small>no keys in Git</small>
+                    </div>
+                    <div class="ax-flow ax-flow-dep">
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="https://awsfundamentals.com/assets/aws-icons/Arch_AWS-Secrets-Manager_64.svg"
+                                    alt="Secrets Manager"></div>
+                            <div class="ax-txt"><b>Secrets Manager</b><small>gemini-api-key</small></div>
+                        </div>
+                        <div class="ax-arrow sec"></div>
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                    alt="ESO"></div>
+                            <div class="ax-txt"><b>ESO</b><small>Pod Identity</small></div>
+                        </div>
+                        <div class="ax-arrow sec"></div>
+                        <div class="ax-card">
+                            <div class="ax-ico"><img
+                                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                    alt="K8s Secret"></div>
+                            <div class="ax-txt"><b>K8s Secret</b><small>env GEMINI_API_KEY</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ax-stats">
+                <div><b>1 → 4</b><span>Ray Serve replicas</span></div>
+                <div><b>t3.medium</b><span>EKS node group</span></div>
+                <div><b>0</b><span>static keys in Git</span></div>
+                <div><b>us-east-1</b><span>AWS region</span></div>
             </div>
         </div>
+    </section>
 
-        <!-- Users -->
-        <div class="down" style="color:var(--ray)">⬆⬇</div>
-        <p class="tier-label">End Users</p>
-        <div class="row">
-            <div class="node accent-ray">
-                <span class="emoji">👥</span>
-                <h3>Users</h3>
-                <small>browser → NLB (port 80)<br />→ Ray Serve (8000)</small>
+    <!-- ===== DEPLOY ===== -->
+    <section class="page" id="page-deploy">
+        <div class="dp">
+            <header class="dp-head">
+                <div>
+                    <span class="dp-eyebrow">Runbook</span>
+                    <h2>Deployment guide</h2>
+                    <p>Thirteen steps from an empty AWS account to a running agent. Tick each step as you finish it;
+                        progress is saved in this browser.</p>
+                </div>
+                <div class="dp-progress"><span id="dpProgText">0 / 13 done</span>
+                    <div class="dp-bar"><i id="dpProgBar"></i></div>
+                    <button class="dp-reset" id="dpReset" type="button">Reset</button>
+                </div>
+            </header>
+            <div class="dp-steps">
+                <div class="dp-phase">One-time setup</div>
+                <article class="dp-step" id="dp-s3">
+                    <div class="dp-step-head"><span class="dp-no">1</span>
+                        <h3>Create the Terraform state bucket</h3><span class="dp-where w-aws">AWS Console</span>
+                        <label class="dp-check"><input type="checkbox" data-step="s3"> Done</label>
+                    </div>
+
+                    <ol>
+                        <li><b>S3 → Create bucket</b>.</li>
+                        <li>Bucket name: <code>kuberay-agent-tfstate-fde-ray</code> (must be globally unique).</li>
+                        <li>Region: <code>us-east-1</code> (same as <code>AWS_REGION</code>).</li>
+                        <li>Enable <b>Bucket Versioning</b>, then <b>Create bucket</b>.</li>
+                    </ol>
+                    <p class="dp-note warn">Create the bucket in the same region as <code>AWS_REGION</code>
+                        (<code>us-east-1</code>). A mismatch causes a <code>301 … actual location</code> error during
+                        <code>terraform init</code>.
+                    </p>
+                </article>
+                <article class="dp-step" id="dp-oidc">
+                    <div class="dp-step-head"><span class="dp-no">2</span>
+                        <h3>Create the GitHub OIDC provider and IAM role</h3><span class="dp-where w-aws">AWS
+                            Console</span>
+                        <label class="dp-check"><input type="checkbox" data-step="oidc"> Done</label>
+                    </div>
+
+                    <h3>OIDC provider</h3>
+                    <ol>
+                        <li><b>IAM → Identity providers → Add provider</b> → <b>OpenID Connect</b>.</li>
+                        <li>Provider URL: <code>https://token.actions.githubusercontent.com</code>, audience
+                            <code>sts.amazonaws.com</code> → <b>Add provider</b>.
+                        </li>
+                    </ol>
+                    <h3>IAM role</h3>
+                    <ol>
+                        <li><b>IAM → Roles → Create role → Web identity</b>, choose the provider above and audience
+                            <code>sts.amazonaws.com</code>.
+                        </li>
+                        <li>Attach <b>AdministratorAccess</b> (lab only — scope down for production).</li>
+                        <li>Name it <code>github-actions-deploy</code> → <b>Create role</b>.</li>
+                    </ol>
+                    <h3>Trust policy</h3>
+                    <p>Open the role → <b>Trust relationships → Edit trust policy</b> and replace
+                        <code>ACCOUNT_ID</code>, <code>GITHUB_ORG</code>, <code>REPO</code>:
+                    </p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">trust-policy.json</div><button class="dp-copy"
+                            type="button">Copy</button>
+                        <pre>{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;Federated&quot;: &quot;arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com&quot;
+      },
+      &quot;Action&quot;: &quot;sts:AssumeRoleWithWebIdentity&quot;,
+      &quot;Condition&quot;: {
+        &quot;StringEquals&quot;: {
+          &quot;token.actions.githubusercontent.com:aud&quot;: &quot;sts.amazonaws.com&quot;
+        },
+        &quot;StringLike&quot;: {
+          &quot;token.actions.githubusercontent.com:sub&quot;: &quot;repo:GITHUB_ORG/REPO:*&quot;
+        }
+      }
+    }
+  ]
+}</pre>
+                    </div>
+                    <p>Copy the role <b>ARN</b> for the next step.</p>
+                </article>
+                <article class="dp-step" id="dp-vars">
+                    <div class="dp-step-head"><span class="dp-no">3</span>
+                        <h3>Set GitHub repository variables</h3><span class="dp-where w-gh">GitHub</span>
+                        <label class="dp-check"><input type="checkbox" data-step="vars"> Done</label>
+                    </div>
+
+                    <p>Repo → <b>Settings → Secrets and variables → Actions → Variables → New repository variable</b>.
+                        None of these are secret.</p>
+                    <table>
+                        <tr>
+                            <th>Name</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td><code>AWS_REGION</code></td>
+                            <td>region for the cluster, e.g. <code>us-east-1</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>AWS_OIDC_ROLE_ARN</code></td>
+                            <td>role ARN from Step 2</td>
+                        </tr>
+                        <tr>
+                            <td><code>TF_STATE_BUCKET</code></td>
+                            <td><code>kuberay-agent-tfstate-fde-ray</code></td>
+                        </tr>
+                    </table>
+                    <p class="dp-note"><code>TF_STATE_KEY</code>, <code>CLUSTER_NAME</code> and <code>ECR_REPO</code>
+                        are hardcoded in Terraform and the workflows.</p>
+                </article>
+                <div class="dp-phase">GitHub Actions</div>
+                <article class="dp-step" id="dp-infra">
+                    <div class="dp-step-head"><span class="dp-no">4</span>
+                        <h3>Provision the infrastructure</h3><span class="dp-where w-gh">GitHub Actions</span>
+                        <label class="dp-check"><input type="checkbox" data-step="infra"> Done</label>
+                    </div>
+
+                    <p><b>Actions → infra Terraform → Run workflow</b>, with <code>action</code> = <b>apply</b>.</p>
+                    <p>Creates the VPC, EKS cluster <code>YashAcademy</code>, node group, ECR, bastion, Secrets Manager
+                        secret, KubeRay operator and External Secrets Operator. The run summary lists the bastion IP and
+                        ECR URL.</p>
+                </article>
+                <article class="dp-step" id="dp-key">
+                    <div class="dp-step-head"><span class="dp-no">5</span>
+                        <h3>Add the Gemini API key</h3><span class="dp-where w-aws">AWS Console</span>
+                        <label class="dp-check"><input type="checkbox" data-step="key"> Done</label>
+                    </div>
+
+                    <ol>
+                        <li><b>Secrets Manager → kuberay-agent/gemini-api-key → Retrieve secret value → Edit</b>.</li>
+                        <li>Replace <code>CHANGE_ME</code> under <code>api-key</code> with your real key → <b>Save</b>.
+                        </li>
+                    </ol>
+                    <p class="dp-note">Terraform ignores later changes to this value, so re-running apply will not
+                        overwrite your key.</p>
+                </article>
+                <article class="dp-step" id="dp-image">
+                    <div class="dp-step-head"><span class="dp-no">6</span>
+                        <h3>Build and push the image</h3><span class="dp-where w-gh">GitHub Actions</span>
+                        <label class="dp-check"><input type="checkbox" data-step="image"> Done</label>
+                    </div>
+
+                    <p><b>Actions → deploy → Run workflow</b>. It builds the React UI and Ray app image, pushes it to
+                        ECR, and commits the new image tag into <code>k8s/kustomization.yaml</code>.</p>
+                </article>
+                <div class="dp-phase">Deploy and test</div>
+                <article class="dp-step" id="dp-bastion">
+                    <div class="dp-step-head"><span class="dp-no">7</span>
+                        <h3>Connect to the bastion</h3><span class="dp-where w-term">Terminal</span>
+                        <label class="dp-check"><input type="checkbox" data-step="bastion"> Done</label>
+                    </div>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>ssh ec2-user@&lt;BASTION_PUBLIC_IP&gt;
+aws eks update-kubeconfig --name YashAcademy --region us-east-1</pre>
+                    </div>
+                </article>
+                <article class="dp-step" id="dp-apply">
+                    <div class="dp-step-head"><span class="dp-no">8</span>
+                        <h3>Clone the repo and deploy</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="apply"> Done</label>
+                    </div>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>git clone &lt;YOUR_REPO_URL&gt;
+cd &lt;REPO_DIR&gt;
+git pull                 # picks up the image tag committed by the deploy workflow
+kubectl apply -k k8s/</pre>
+                    </div>
+                    <p>Creates the namespace, service account, SecretStore, ExternalSecret, RayService and public
+                        Service.</p>
+                </article>
+                <article class="dp-step" id="dp-verify">
+                    <div class="dp-step-head"><span class="dp-no">9</span>
+                        <h3>Verify the rollout</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="verify"> Done</label>
+                    </div>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>kubectl get rayservice ai-agent -n ai-agent
+kubectl get pods -n ai-agent
+kubectl get secret gemini-secret -n ai-agent
+kubectl get svc -n ai-agent</pre>
+                    </div>
+                    <p>Wait for the RayService to be ready and for <code>gemini-secret</code> to exist before testing.
+                    </p>
+                </article>
+                <article class="dp-step" id="dp-forward">
+                    <div class="dp-step-head"><span class="dp-no">10</span>
+                        <h3>Port-forward</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="forward"> Done</label>
+                    </div>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>kubectl port-forward svc/ai-agent-head-svc 8265:8265 -n ai-agent
+kubectl port-forward svc/ai-agent-serve-svc 8000:8000 -n ai-agent</pre>
+                    </div>
+                    <p>Ray dashboard: <code>http://localhost:8265</code> · Agent: <code>http://localhost:8000</code></p>
+                </article>
+                <article class="dp-step" id="dp-test">
+                    <div class="dp-step-head"><span class="dp-no">11</span>
+                        <h3>Test the agent</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="test"> Done</label>
+                    </div>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>curl -X POST http://localhost:8000/chat \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{&quot;message&quot;:&quot;hai&quot;}&#x27;
+
+for i in {1..20}; do
+  curl -X POST http://localhost:8000/chat \
+    -H &quot;Content-Type: application/json&quot; \
+    -d &#x27;{&quot;message&quot;:&quot;hai&quot;}&#x27; &amp;
+done
+wait</pre>
+                    </div>
+                    <p>The 20 parallel requests should trigger Ray Serve autoscaling; watch it in the Ray dashboard.</p>
+                </article>
+                <article class="dp-step" id="dp-public">
+                    <div class="dp-step-head"><span class="dp-no">12</span>
+                        <h3>Get the public URL (optional)</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="public"> Done</label>
+                    </div>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>kubectl get svc ai-agent-public -n ai-agent \
+  -o jsonpath=&#x27;{.status.loadBalancer.ingress[0].hostname}&#x27;</pre>
+                    </div>
+                    <p class="dp-note warn"><code>/chat</code> has no authentication and the Service allows
+                        <code>0.0.0.0/0</code>. Restrict <code>loadBalancerSourceRanges</code> before sharing the URL.
+                    </p>
+                </article>
+                <div class="dp-phase">Clean up</div>
+                <article class="dp-step" id="dp-teardown">
+                    <div class="dp-step-head"><span class="dp-no">13</span>
+                        <h3>Tear everything down</h3><span class="dp-where w-gh">GitHub Actions</span>
+                        <label class="dp-check"><input type="checkbox" data-step="teardown"> Done</label>
+                    </div>
+
+                    <p><b>Actions → infra Terraform → Run workflow</b> with <code>action</code> = <b>destroy</b>. It
+                        deletes the Kubernetes app and NLB first, then runs <code>terraform destroy</code>.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash · manual equivalent</div><button class="dp-copy"
+                            type="button">Copy</button>
+                        <pre>kubectl delete -k k8s/          # removes the app + NLB
+cd terraform &amp;&amp; terraform destroy</pre>
+                    </div>
+                    <p class="dp-note danger">The S3 state bucket and the GitHub OIDC role are created manually and are
+                        not deleted. Remove them by hand for a true $0 bill.</p>
+                </article>
             </div>
         </div>
+    </section>
 
-    </div>
+    <!-- ===== DEMO ===== -->
+    <section class="page" id="page-demo">
+        <div class="wrap" style="padding-bottom:0">
+            <h2>🎬 The journey of one AI request</h2>
+            <p class="sub">A kid-friendly 3D story: follow one glowing request from the browser to Gemini, then watch
+                KubeRay scale and repair the cluster.</p>
+        </div>
+        <div class="story-shell">
+            <div class="story-player" id="storyPlayer">
+                <div class="story-sky"></div>
+                <div class="story-stars"></div>
+                <div class="story-head">
+                    <div class="story-brand"><span class="story-brand-mark"><img
+                                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                alt=""></span><span><b>YashAcademy Cloud Journey</b><small id="storyClock">00:00 / 01:30
+                                · Ready</small></span></div>
+                    <button class="story-button primary" id="storyPlay">▶ Play</button>
+                    <button class="story-button" id="storyReset">↺ Restart</button>
+                    <button class="story-button" id="storyFull">⛶ Fullscreen</button>
+                </div>
+                <div class="scene-title"><span class="eyebrow" id="storyChapter">Chapter 1</span>
+                    <h3 id="storyHeadline">Meet Spark, our AI request</h3>
+                </div>
+                <div class="world pipeline" id="storyWorld">
+                    <div class="lane lane-req"><span>REQUESTS →</span></div>
+                    <div class="lane lane-res"><span>← ANSWERS</span></div>
+                    <div class="track"><i class="track-fill" id="trackFill"></i></div>
+                    <div class="island pipe-card" data-scene="0" style="--x:6%"><span class="step-no">1</span>
+                        <div class="card-icon"><svg viewBox="0 0 24 24" class="card-svg">
+                                <circle cx="9" cy="7" r="3.2" />
+                                <path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5z" />
+                                <circle cx="17" cy="8" r="2.6" opacity=".6" />
+                                <path d="M14.6 13.7c3.5-.6 6.9 1.9 6.9 6.3h-4.4" opacity=".6" />
+                            </svg></div>
+                        <div class="service-label">People<small>browsers</small></div>
+                    </div>
+                    <div class="island pipe-card" data-scene="1" style="--x:17%"><span class="step-no">2</span>
+                        <div class="card-icon"><img
+                                src="https://awsfundamentals.com/assets/aws-icons/Arch_Amazon-Route-53_64.svg"
+                                alt="Route 53"></div>
+                        <div class="service-label">Domain<small>DNS lookup</small></div>
+                    </div>
+                    <div class="island pipe-card" data-scene="2" style="--x:28%"><span class="step-no">3</span>
+                        <div class="card-icon"><img
+                                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cloudflare/cloudflare-original.svg"
+                                alt="Cloudflare"></div>
+                        <div class="service-label">Cloudflare<small>edge + CDN</small></div>
+                    </div>
+                    <div class="island pipe-card" data-scene="3" style="--x:39%"><span class="step-no">4</span>
+                        <div class="card-icon"><img
+                                src="https://awsfundamentals.com/assets/aws-icons/Arch_AWS-WAF_64.svg" alt="AWS WAF">
+                        </div>
+                        <div class="service-label">AWS WAF<small>security rules</small></div>
+                    </div>
+                    <div class="island pipe-card" data-scene="4" style="--x:50%"><span class="step-no">5</span>
+                        <div class="card-icon"><img
+                                src="https://awsfundamentals.com/assets/aws-icons/Arch_Amazon-API-Gateway_64.svg"
+                                alt="API Gateway"></div>
+                        <div class="service-label">API Gateway<small>auth + routing</small></div>
+                    </div>
+                    <div class="island pipe-card" data-scene="5" style="--x:61%"><span class="step-no">6</span>
+                        <div class="card-icon"><svg viewBox="0 0 24 24" class="card-svg">
+                                <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1 1" fill="none"
+                                    stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                                <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1-1" fill="none"
+                                    stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                            </svg></div>
+                        <div class="service-label">VPC Link<small>private tunnel</small></div>
+                    </div>
+                    <div class="island pipe-card" data-scene="6" style="--x:72%"><span class="step-no">7</span>
+                        <div class="card-icon"><img
+                                src="https://awsfundamentals.com/assets/aws-icons/Arch_Elastic-Load-Balancing_64.svg"
+                                alt="NLB"></div>
+                        <div class="service-label">NLB<small>load balancer</small></div>
+                    </div>
+                    <div class="island pipe-card" data-scene="7" style="--x:83%"><span class="step-no">8</span>
+                        <div class="card-icon"><img
+                                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                alt="EKS"></div>
+                        <div class="service-label">EKS + KubeRay<small>AI workers</small></div>
+                    </div>
+                    <div class="island pipe-card" data-scene="8" style="--x:94%"><span class="step-no">9</span>
+                        <div class="card-icon"><img
+                                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/googlecloud/googlecloud-original.svg"
+                                alt="Gemini"></div>
+                        <div class="service-label">Gemini<small>writes answer</small></div>
+                    </div>
+                    <div class="request-hero" id="requestHero"></div>
+                </div>
+                <div class="eks-closeup show" id="eksCloseup">
+                    <div class="eks-head"><img
+                            src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                            alt=""> Kubernetes screen · EKS cluster YashAcademy · namespace ai-agent <span
+                            class="eks-state" id="eksState">1 node · 1 pod · 1 replica</span></div>
+                    <div class="pod-stage">
+                        <div class="operator-tower" id="storyOperator"><img
+                                src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg"
+                                alt=""><b>KubeRay Operator</b><small id="operatorText">Watching</small>
+                            <div class="cluster-autoscaler" id="clusterAutoscaler">Cluster Autoscaler</div>
+                        </div>
+                        <div class="node-city" id="nodeCity"></div>
+                        <div class="k8s-terminal">
+                            <div class="term-bar"><i></i><i></i><i></i> kubectl · ai-agent</div>
+                            <pre id="termOut"></pre>
+                        </div>
+                    </div>
+                    <div class="pending-pod" id="pendingPod">⏳ Worker Pod 3 · Pending</div>
+                </div>
+                <div class="story-callout">
+                    <div class="guide">✨</div>
+                    <div class="callout-copy"><b id="storyStep">Ready</b>
+                        <p id="storyCaption">Press Play. Spark will show us how an AI answer travels through the cloud.
+                        </p>
+                    </div>
+                </div>
+                <div class="story-metrics">
+                    <div class="story-metric"><b id="storyUsers">0</b><small>Users</small></div>
+                    <div class="story-metric"><b id="storyQueue">0</b><small>Waiting</small></div>
+                    <div class="story-metric"><b id="storyNodes">0</b><small>Nodes</small></div>
+                    <div class="story-metric"><b id="storyPods">0</b><small>Pods</small></div>
+                    <div class="story-metric"><b id="storyReplicas">0</b><small>Replicas</small></div>
+                </div>
+                <div class="story-timeline" id="storySeek" title="Click to jump"><i id="storyTimeline"></i>
+                    <div class="seek-marks" id="seekMarks"></div>
+                </div>
+            </div>
+            <p class="story-note">Target production edge and scaling story: Cloudflare → AWS WAF/API Gateway → VPC Link
+                → NLB. This repository currently provisions NLB, EKS, KubeRay, and Ray Serve; Kubernetes Cluster
+                Autoscaler and the other edge services are shown as target additions. Sources: <a
+                    href="https://developers.cloudflare.com/reference-architecture/design-guides/secure-application-delivery/"
+                    target="_blank" rel="noreferrer">Cloudflare secure delivery</a> · <a
+                    href="https://docs.aws.amazon.com/en_us/apigateway/latest/developerguide/getting-started-with-private-integration.html"
+                    target="_blank" rel="noreferrer">AWS private integration</a> · <a
+                    href="https://docs.ray.io/en/latest/serve/autoscaling-guide.html" target="_blank"
+                    rel="noreferrer">Ray Serve autoscaling</a>. Content was rephrased for compliance with licensing
+                restrictions.</p>
+        </div>
+    </section>
 
-    <footer>
-        Request path: <code>User → NLB → Ray Serve (FastAPI) → Gemini API</code> &nbsp;·&nbsp;
-        Secret path: <code>Secrets Manager → ESO → k8s Secret → Pod env</code> &nbsp;·&nbsp;
-        Deploy path: <code>GitHub Actions → Terraform/Docker → EKS</code>
-    </footer>
+    <script>
+
+        // ===== Deploy guide: copy buttons + progress =====
+        (() => {
+            document.querySelectorAll(".dp-copy").forEach(b => b.addEventListener("click", async () => {
+                const text = b.parentElement.querySelector("pre").textContent;
+                try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Select + copy"; }
+                setTimeout(() => b.textContent = "Copy", 1600);
+            }));
+            const KEY = "yashacademy-deploy-progress", boxes = [...document.querySelectorAll(".dp-check input")];
+            let done = {}; try { done = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { }
+            const paint = () => {
+                let n = 0;
+                boxes.forEach(b => { const on = !!done[b.dataset.step]; b.checked = on; b.closest(".dp-step").classList.toggle("done", on); if (on) n++; });
+                document.getElementById("dpProgText").textContent = `${n} / ${boxes.length} done`;
+                document.getElementById("dpProgBar").style.width = (n / boxes.length * 100) + "%";
+            };
+            boxes.forEach(b => b.addEventListener("change", () => { done[b.dataset.step] = b.checked; localStorage.setItem(KEY, JSON.stringify(done)); paint(); }));
+            document.getElementById("dpReset").addEventListener("click", () => { done = {}; localStorage.removeItem(KEY); paint(); });
+            paint();
+        })();
+
+        // ===== Nav / page switching =====
+        (() => {
+            const btns = document.querySelectorAll("[data-page]");
+            const show = (page) => {
+                document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === "page-" + page));
+                document.querySelectorAll(".nav [data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === page));
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            };
+            btns.forEach(b => b.addEventListener("click", () => show(b.dataset.page)));
+        })();
+
+        // ===== 3D isometric story: timeline engine (play · pause · seek · fullscreen) =====
+        (() => {
+            const $ = id => document.getElementById(id);
+            const play = $("storyPlay"), restart = $("storyReset"), full = $("storyFull"), player = $("storyPlayer");
+            const hero = $("requestHero"), world = $("storyWorld"), islands = [...document.querySelectorAll(".island")];
+            const nodeCity = $("nodeCity"), operator = $("storyOperator"), autoscaler = $("clusterAutoscaler"), pending = $("pendingPod"), term = $("termOut");
+            const route = Array.from({ length: 9 }, (_, i) => [6 + i * 11, 50]);
+            const SKIN = ["#f3c9a3", "#d9a273", "#a8714a", "#7b4f32"], SHIRT = ["#38bdf8", "#a78bfa", "#f472b6", "#fbbf24", "#34d399", "#fb923c"];
+            const HOSTS = ["ip-10-0-3-21", "ip-10-0-4-87"];
+            const IDS = { head: "7f2kq", p1: "a3k9x", p2: "m8q2c", p3: "r4t7b", p4: "z9w1d" };
+
+            // Each scene: start second, what to show, and what to say.
+            // Cluster: n=nodes, use=[node1,node2] load, pods=[[name,node,replicas,state]], pend=pending pod
+            const S = [
+                {
+                    t: 0.0, c: "Intro", h: "The journey of one AI request", st: "WELCOME", f: -1, u: 10, q: 0,
+                    x: "We start with just 10 users. We follow them through the cloud, then go deep inside EKS and KubeRay to see how pods and replicas scale and heal.",
+                    k: { n: 1, use: [22, 0], pods: [["Worker Pod 1", 0, 1, "Running"]] }, ev: [["Scheduled", "wkr-a3k9x → ip-10-0-3-21"], ["Started", "Ray Serve replica 1 ready"]], op: "Watching"
+                },
+                {
+                    t: 3.5, c: "Chapter 1", h: "Kubernetes is already running", st: "THE STARTING POINT", f: 7, u: 10, q: 0,
+                    x: "Look at the Kubernetes screen below. Only 10 users are online, so one node (a computer) runs one Worker Pod with one Ray Serve replica — that is enough.",
+                    k: { n: 1, use: [22, 0], pods: [["Worker Pod 1", 0, 1, "Running"]] }, op: "Watching"
+                },
+                {
+                    t: 7.9, c: "Chapter 2", h: "10 people open the app", st: "1 · 10 USERS", f: 0, u: 10, q: 0, mv: 0,
+                    x: "10 people open the website and type questions. Every little person moving on the road is one request travelling to our AI."
+                },
+                {
+                    t: 11.4, c: "Chapter 2", h: "The domain finds the address", st: "2 · DOMAIN / DNS", f: 1, u: 10, q: 0, mv: 1,
+                    x: "The browser asks DNS for the address of the domain — just like looking up a phone number in a contact list."
+                },
+                {
+                    t: 14.5, c: "Chapter 2", h: "Cloudflare: the fast front door", st: "3 · CLOUDFLARE", f: 2, u: 10, q: 0, mv: 2,
+                    x: "Cloudflare sits close to every user. It speeds up delivery and blocks obvious attacks before they ever reach AWS."
+                },
+                {
+                    t: 17.6, c: "Chapter 2", h: "AWS WAF: the security guard", st: "4 · AWS WAF", f: 3, u: 10, q: 0, mv: 3,
+                    x: "The Web Application Firewall checks each request against security rules. Bad requests are stopped; good ones continue."
+                },
+                {
+                    t: 20.6, c: "Chapter 2", h: "API Gateway: the reception desk", st: "5 · API GATEWAY", f: 4, u: 10, q: 0, mv: 4,
+                    x: "API Gateway reads each request, applies limits and routing rules, then forwards it into the private network."
+                },
+                {
+                    t: 23.7, c: "Chapter 2", h: "VPC Link: the private tunnel", st: "6 · VPC LINK", f: 5, u: 10, q: 0, mv: 5,
+                    x: "VPC Link is a private tunnel. Traffic leaves the public internet and travels safely inside our own AWS network."
+                },
+                {
+                    t: 26.3, c: "Chapter 2", h: "NLB: the traffic conductor", st: "7 · NETWORK LOAD BALANCER", f: 6, u: 10, q: 0, mv: 6,
+                    x: "The Network Load Balancer spreads connections across healthy pods so no single helper is overloaded."
+                },
+                {
+                    t: 29.4, c: "Chapter 3", h: "Welcome to EKS + KubeRay", st: "8 · ENTERING THE CLUSTER", f: 7, u: 10, q: 0, mv: 7,
+                    x: "EKS is Amazon's managed Kubernetes. KubeRay is an operator that runs Ray on Kubernetes. Together they host our AI agent.",
+                    ev: [["Routed", "NLB → svc/ai-agent-serve-svc:8000"]]
+                },
+                {
+                    t: 32.9, c: "Chapter 3", h: "Node → Pod → Replica", st: "9 · THE THREE LAYERS", f: 7, u: 50, q: 0,
+                    x: "Think of it like a building: a NODE is the building, a POD is a room inside it, and a REPLICA is a worker sitting in that room.",
+                    k: { n: 1, use: [30, 0], pods: [["Worker Pod 1", 0, 1, "Running"]] }
+                },
+                {
+                    t: 36.9, c: "Chapter 3", h: "The KubeRay Operator is watching", st: "10 · THE OPERATOR", f: 7, u: 100, q: 0,
+                    x: "The KubeRay Operator constantly compares what we asked for with what is running, and fixes any difference automatically.", op: "Reconciling"
+                },
+                {
+                    t: 40.4, c: "Chapter 4", h: "Traffic starts climbing", st: "11 · 100 → 300 USERS", f: 7, u: 300, q: 50, op: "Load rising",
+                    x: "More people arrive. One replica now has more requests than it can handle at once, so requests start to wait in a queue.",
+                    k: { n: 1, use: [48, 0], pods: [["Worker Pod 1", 0, 1, "Running"]] }
+                },
+                {
+                    t: 43.9, c: "Chapter 4", h: "Ray Serve adds replicas", st: "12 · REPLICA SCALE-OUT", f: 7, u: 400, q: 30, op: "Adding replicas",
+                    x: "Ray Serve's autoscaler adds more replicas INSIDE the same pod. No new machine is needed yet — the room just gets more workers.",
+                    k: { n: 1, use: [62, 0], pods: [["Worker Pod 1", 0, 3, "Running"]] }, ev: [["ScaledUp", "serve replicas 1 → 3 in wkr-a3k9x"]]
+                },
+                {
+                    t: 48.3, c: "Chapter 4", h: "The pod is full — add a pod", st: "13 · POD SCALE-OUT", f: 7, u: 600, q: 190, op: "Creating Pod 2",
+                    x: "Pod 1 has no more room. KubeRay asks Kubernetes for a second Worker Pod, and it starts on the same Node 1.",
+                    k: { n: 1, use: [80, 0], pods: [["Worker Pod 1", 0, 3, "Running"], ["Worker Pod 2", 0, 2, "Running"]] }, ev: [["Scheduled", "wkr-m8q2c → ip-10-0-3-21"]]
+                },
+                {
+                    t: 52.2, c: "Chapter 5", h: "Suddenly 1000 users!", st: "14 · TRAFFIC SPIKE", f: 7, u: 1000, q: 430, op: "Node full",
+                    x: "Traffic jumps to 1000 users. Node 1's CPU and memory are almost completely used. There is no space left for another pod.",
+                    k: { n: 1, use: [96, 0], pods: [["Worker Pod 1", 0, 3, "Running"], ["Worker Pod 2", 0, 2, "Running"]] }, ev: [["HighUsage", "ip-10-0-3-21 cpu 96% mem 94%", 1]]
+                },
+                {
+                    t: 55.8, c: "Chapter 5", h: "Pod 3 is Pending", st: "15 · NO ROOM", f: 7, u: 1000, q: 520, op: "Pod 3 Pending", ca: 1,
+                    x: "KubeRay asks for Pod 3, but Kubernetes cannot place it anywhere. The pod waits in the Pending state.",
+                    k: { n: 1, use: [96, 0], pods: [["Worker Pod 1", 0, 3, "Running"], ["Worker Pod 2", 0, 2, "Running"]], pend: 1 }, ev: [["FailedScheduling", "0/1 nodes: Insufficient cpu, memory", 1]]
+                },
+                {
+                    t: 58.8, c: "Chapter 5", h: "A brand-new node is created", st: "16 · NODE SCALE-OUT", f: 7, u: 1000, q: 120, op: "Healthy", ca: 1,
+                    x: "The Cluster Autoscaler sees the Pending pod and adds Node 2. Pod 3 starts there with three new replicas.",
+                    k: { n: 2, use: [96, 48], pods: [["Worker Pod 1", 0, 3, "Running"], ["Worker Pod 2", 0, 2, "Running"], ["Worker Pod 3", 1, 3, "Running"]] }, ev: [["TriggeredScaleUp", "cluster-autoscaler: nodes 1 → 2"], ["Scheduled", "wkr-r4t7b → ip-10-0-4-87"]]
+                },
+                {
+                    t: 61.9, c: "Chapter 6", h: "Oh no — a pod crashes", st: "17 · POD FAILURE", f: 7, u: 1000, q: 160, op: "Replacing Pod 2",
+                    x: "Pod 2 crashes. The healthy pods keep answering users, so nobody sees an error while Kubernetes reacts.",
+                    k: { n: 2, use: [78, 48], pods: [["Worker Pod 1", 0, 3, "Running"], ["Worker Pod 2", 0, 2, "Terminating"], ["Worker Pod 3", 1, 3, "Running"]] }, ev: [["Killing", "wkr-m8q2c container crashed", 1]]
+                },
+                {
+                    t: 64.1, c: "Chapter 6", h: "Self-healing replaces the pod", st: "18 · SELF-HEALING", f: 7, u: 1000, q: 0, op: "Healthy",
+                    x: "KubeRay creates a replacement pod on Node 2, where there is free capacity. Replicas are restored automatically.",
+                    k: { n: 2, use: [62, 74], pods: [["Worker Pod 1", 0, 3, "Running"], ["Worker Pod 3", 1, 3, "Running"], ["Worker Pod 4", 1, 2, "Running"]] }, ev: [["Scheduled", "wkr-z9w1d → ip-10-0-4-87"]]
+                },
+                {
+                    t: 66.7, c: "Chapter 7", h: "Gemini writes the answer", st: "19 · GEMINI", f: 8, u: 1000, q: 0, mv: 8,
+                    x: "A Ray Serve replica sends the question to Google Gemini. Gemini writes the answer and returns it."
+                },
+                {
+                    t: 69.4, c: "Chapter 7", h: "The answer travels home", st: "20 · RESPONSE", f: -1, u: 1000, q: 0, back: 1,
+                    x: "The answer travels back through the same safe path — NLB, gateway, WAF and Cloudflare — straight to the user's screen."
+                },
+                {
+                    t: 72.4, c: "Chapter 8", h: "Evening comes — users leave", st: "21 · 1000 → 300 USERS", f: -1, u: 300, q: 0, op: "Load falling",
+                    x: "The busy hour ends and people log off. Traffic falls from 1000 to 300 users. Now we have more helpers than we need.",
+                    k: { n: 2, use: [34, 30], pods: [["Worker Pod 1", 0, 3, "Running"], ["Worker Pod 3", 1, 3, "Running"], ["Worker Pod 4", 1, 2, "Running"]] }
+                },
+                {
+                    t: 76.0, c: "Chapter 8", h: "Ray Serve removes extra replicas", st: "22 · REPLICA SCALE-DOWN", f: -1, u: 100, q: 0, op: "Removing replicas",
+                    x: "Idle replicas cost money. Ray Serve's autoscaler waits a short cool-down, then removes replicas that have no work.",
+                    k: { n: 2, use: [20, 18], pods: [["Worker Pod 1", 0, 1, "Running"], ["Worker Pod 3", 1, 1, "Running"], ["Worker Pod 4", 1, 1, "Running"]] }, ev: [["ScaledDown", "serve replicas 8 → 3"]]
+                },
+                {
+                    t: 79.5, c: "Chapter 8", h: "Empty pods are removed", st: "23 · POD SCALE-DOWN", f: -1, u: 30, q: 0, op: "Removing pods",
+                    x: "Pods 3 and 4 are now empty, so KubeRay deletes them. Node 2 has nothing left to run.",
+                    k: { n: 2, use: [16, 4], pods: [["Worker Pod 1", 0, 1, "Running"]] }, ev: [["Killing", "wkr-r4t7b scaled down"], ["Killing", "wkr-z9w1d scaled down"]]
+                },
+                {
+                    t: 83.0, c: "Chapter 8", h: "Node 2 is shut down", st: "24 · NODE SCALE-DOWN", f: -1, u: 10, q: 0, op: "Healthy", ca: 1,
+                    x: "The Cluster Autoscaler sees Node 2 is empty and removes it. We stop paying for a machine we no longer need.",
+                    k: { n: 1, use: [14, 0], pods: [["Worker Pod 1", 0, 1, "Running"]] }, ev: [["ScaleDown", "cluster-autoscaler: nodes 2 → 1"]]
+                },
+                {
+                    t: 86.5, c: "Recap", h: "Back to 10 users, back to 1 node", st: "COMPLETE", f: -1, u: 10, q: 0, op: "Watching",
+                    x: "Recap: 10 → 1000 users scaled replicas, pods and nodes up. 1000 → 10 users scaled them all back down — automatically, paying only for what we use.",
+                    k: { n: 1, use: [14, 0], pods: [["Worker Pod 1", 0, 1, "Running"]] }
+                }
+            ];
+            const END = 90;
+
+            // Fill in inherited state so every scene is complete (needed for seeking).
+            let last = { k: S[0].k, op: "Watching" };
+            S.forEach(sc => { sc.k = sc.k || last.k; sc.op = sc.op || last.op; last = sc; });
+
+            let time = 0, playing = false, lastTs = 0, sceneIdx = -1, spawnAcc = 0;
+
+            // ---------- Kubernetes screen rendering ----------
+            function renderCluster(k, sc) {
+                nodeCity.innerHTML = "";
+                const nodes = [];
+                for (let i = 0; i < k.n; i++) {
+                    const u = k.use[i] || 22, n = document.createElement("div");
+                    n.className = "k8s-node show" + (u >= 90 ? " hot" : u >= 55 ? " warm" : "");
+                    n.innerHTML = `<div class="node-head"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg" alt="">Node ${i + 1}${i === 1 ? " · new" : ""}<span class="node-status">Ready</span></div>
+                      <div class="node-capacity"><div class="capacity">CPU ${u}%<div class="meter"><i style="width:${u}%"></i></div></div><div class="capacity">Memory ${Math.max(0, u - 2)}%<div class="meter"><i style="width:${Math.max(0, u - 2)}%"></i></div></div></div><div class="node-pods"></div>`;
+                    nodeCity.appendChild(n); nodes.push(n);
+                }
+                let rep = 0;
+                k.pods.forEach(([name, ni, reps, state]) => {
+                    const pod = document.createElement("div");
+                    pod.className = "node-pod show" + (state === "Terminating" ? " fail" : "");
+                    pod.innerHTML = `<h5>📦 ${name}</h5>`;
+                    for (let r = 0; r < reps; r++) { const c = document.createElement("div"); c.className = "replica-chip show" + (sc.u >= 300 ? " busy" : ""); c.textContent = `Ray replica ${++rep}`; pod.appendChild(c); }
+                    nodes[ni].querySelector(".node-pods").appendChild(pod);
+                });
+                pending.classList.toggle("show", !!k.pend);
+                autoscaler.classList.toggle("pulse", !!sc.ca);
+                operator.classList.toggle("pulse", sc.op !== "Watching" && sc.op !== "Healthy");
+                $("operatorText").textContent = sc.op;
+                const live = k.pods.filter(p => p[3] !== "Terminating");
+                const reps = live.reduce((a, p) => a + p[2], 0);
+                $("eksState").textContent = `${k.n} node${k.n > 1 ? "s" : ""} · ${live.length} pod${live.length > 1 ? "s" : ""} · ${reps} replica${reps > 1 ? "s" : ""}${k.pend ? " · 1 Pending" : ""}`;
+                $("storyNodes").textContent = k.n; $("storyPods").textContent = live.length; $("storyReplicas").textContent = reps;
+            }
+
+            function renderTerm(idx) {
+                const pad = (v, n) => String(v).padEnd(n), sc = S[idx], k = sc.k, out = [];
+                out.push('<span class="t-cmd">$ kubectl get nodes</span>');
+                for (let i = 0; i < k.n; i++) { const u = k.use[i] || 22; out.push(`${pad(HOSTS[i], 14)}<span class="t-ok">Ready</span>  cpu ${pad(u + "%", 4)} mem ${Math.max(0, u - 2)}%`); }
+                out.push('<span class="t-cmd">$ kubectl get pods -n ai-agent -o wide</span>');
+                out.push(`<span class="t-dim">${pad("NAME", 20)}${pad("STATUS", 12)}${pad("REPL", 5)}NODE</span>`);
+                out.push(`${pad("ai-agent-head-" + IDS.head, 20)}<span class="t-ok">${pad("Running", 12)}</span>${pad("-", 5)}${HOSTS[0]}`);
+                const key = ["p1", "p2", "p3", "p4"];
+                k.pods.forEach(([name, ni, reps, state]) => {
+                    const id = IDS[key[Number(name.slice(-1)) - 1]] || "x0000";
+                    const cls = state === "Terminating" ? "t-bad" : "t-ok";
+                    out.push(`${pad("ai-agent-wkr-" + id, 20)}<span class="${cls}">${pad(state, 12)}</span>${pad(reps, 5)}${HOSTS[ni]}`);
+                });
+                if (k.pend) out.push(`${pad("ai-agent-wkr-" + IDS.p3, 20)}<span class="t-warn">${pad("Pending", 12)}</span>${pad("0", 5)}&lt;none&gt;`);
+                out.push('<span class="t-cmd">$ kubectl get events</span>');
+                const evs = []; for (let i = 0; i <= idx; i++) (S[i].ev || []).forEach(e => evs.push(e));
+                evs.slice(-4).forEach(([r, m, w]) => out.push(`<span class="${w ? "t-warn" : "t-dim"}">${pad(w ? "Warning" : "Normal", 8)}${pad(r, 17)}</span>${m}`));
+                term.innerHTML = out.join("\n");
+            }
+
+            // ---------- Scene switching ----------
+            function sceneAt(t) { let i = 0; while (i + 1 < S.length && S[i + 1].t <= t) i++; return i; }
+            function focus(i) { islands.forEach((x, n) => { x.classList.toggle("focus", n === i); x.classList.toggle("dim", i >= 0 && n !== i); }); const tf = document.getElementById("trackFill"); if (tf) tf.style.width = i < 0 ? "0%" : ((i / 8) * 100) + "%"; }
+            function moveHero(i, resp) { hero.classList.toggle("response", !!resp); hero.style.opacity = "1"; hero.style.left = route[i][0] + "%"; hero.style.top = route[i][1] + "%"; }
+
+            function applyScene(idx) {
+                if (idx === sceneIdx) return;
+                sceneIdx = idx; const sc = S[idx];
+                $("storyChapter").textContent = sc.c; $("storyHeadline").textContent = sc.h;
+                $("storyStep").textContent = sc.st; $("storyCaption").textContent = sc.x;
+                $("storyUsers").textContent = sc.u; $("storyQueue").textContent = sc.q;
+                focus(sc.f);
+                if (sc.mv !== undefined) moveHero(sc.mv); else if (!sc.back && sc.f < 0) hero.style.opacity = "0";
+                renderCluster(sc.k, sc); renderTerm(idx);
+            }
+
+            // Response orb walks back home during the "answer travels home" scene.
+            function animateBack(t) {
+                const sc = S[sceneIdx]; if (!sc.back) return;
+                const next = S[sceneIdx + 1] ? S[sceneIdx + 1].t : END, span = next - sc.t;
+                const prog = Math.min(1, (t - sc.t) / span), pos = 8 - Math.min(8, Math.floor(prog * 9));
+                moveHero(pos, true); focus(pos);
+            }
+
+            function spawnPerson(resp) {
+                const el = document.createElement("span"); el.className = "traffic-person" + (resp ? " answer" : "");
+                if (resp) el.innerHTML = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
+                else {
+                    const skin = SKIN[Math.floor(Math.random() * SKIN.length)], shirt = SHIRT[Math.floor(Math.random() * SHIRT.length)];
+                    el.innerHTML = `<svg viewBox="0 0 20 32"><circle cx="10" cy="6" r="5" fill="${skin}"/><path d="M2 31v-9a8 8 0 0 1 16 0v9z" fill="${shirt}"/><rect x="5" y="27" width="10" height="5" rx="1.5" fill="#1e293b"/></svg>`;
+                }
+                const lane = resp ? 66 : 34, jitter = (Math.random() - .5) * 6;
+                const x0 = resp ? 94 : 3, x1 = resp ? 3 : 94; world.appendChild(el);
+                const a = el.animate([{ left: x0 + "%", top: lane + jitter + "%", opacity: 0 }, { opacity: 1, offset: .06 }, { opacity: 1, offset: .94 }, { left: x1 + "%", top: lane + jitter + "%", opacity: 0 }],
+                    { duration: resp ? 2200 : 3200, easing: "linear" });
+                a.onfinish = () => { el.remove(); if (!resp && playing) spawnPerson(true); };
+            }
+
+            // ---------- Clock ----------
+            const fmt = t => `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+            function paint(state) {
+                $("storyTimeline").style.width = (time / END * 100) + "%";
+                $("storyClock").textContent = `${fmt(time)} / ${fmt(END)} · ${state}`;
+            }
+
+            function tick(ts) {
+                if (!playing) return;
+                const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
+                time = Math.min(END, time + dt);
+                applyScene(sceneAt(time)); animateBack(time);
+                const u = S[sceneIdx].u; spawnAcc += dt * (u >= 1000 ? 14 : u >= 600 ? 9 : u >= 300 ? 6 : u >= 100 ? 3 : u > 0 ? 1 : 0);
+                while (spawnAcc >= 1) { spawnPerson(false); spawnAcc -= 1; }
+                paint("Playing");
+                if (time >= END) { finish(); return; }
+                requestAnimationFrame(tick);
+            }
+
+            function setPlayButton() {
+                play.textContent = playing ? "⏸ Pause" : (time >= END ? "↻ Replay" : time > 0 ? "▶ Resume" : "▶ Play");
+                play.classList.toggle("paused", playing);
+            }
+            function start() { if (time >= END) seek(0); playing = true; lastTs = 0; world.getAnimations && document.querySelectorAll(".traffic-person").forEach(e => e.getAnimations().forEach(a => a.play())); setPlayButton(); requestAnimationFrame(tick); }
+            function pause() { playing = false; document.querySelectorAll(".traffic-person").forEach(e => e.getAnimations().forEach(a => a.pause())); setPlayButton(); paint("Paused"); }
+            function finish() { playing = false; setPlayButton(); paint("Complete"); }
+            function seek(t) {
+                time = Math.max(0, Math.min(END, t)); sceneIdx = -1;
+                document.querySelectorAll(".traffic-person").forEach(e => e.remove());
+                applyScene(sceneAt(time)); animateBack(time);
+                paint(playing ? "Playing" : time > 0 ? "Paused" : "Ready"); setPlayButton();
+            }
+
+            // ---------- Controls ----------
+            play.addEventListener("click", () => playing ? pause() : start());
+            restart.addEventListener("click", () => { seek(0); start(); });
+            full.addEventListener("click", () => {
+                if (document.fullscreenElement) document.exitFullscreen();
+                else (player.requestFullscreen || player.webkitRequestFullscreen).call(player);
+            });
+            document.addEventListener("fullscreenchange", () => { full.textContent = document.fullscreenElement ? "✕ Exit fullscreen" : "⛶ Fullscreen"; });
+            $("storySeek").addEventListener("click", e => { const r = e.currentTarget.getBoundingClientRect(); seek((e.clientX - r.left) / r.width * END); });
+            document.addEventListener("keydown", e => {
+                if (!document.getElementById("page-demo").classList.contains("active")) return;
+                if (e.code === "Space") { e.preventDefault(); playing ? pause() : start(); }
+                if (e.key === "f" || e.key === "F") full.click();
+                if (e.key === "ArrowRight") seek(time + 5);
+                if (e.key === "ArrowLeft") seek(time - 5);
+            });
+            // Pause automatically when leaving the Demo tab.
+            document.querySelectorAll("[data-page]").forEach(b => b.addEventListener("click", () => { if (b.dataset.page !== "demo" && playing) pause(); }));
+
+            // Chapter markers on the seek bar.
+            const marks = $("seekMarks");
+            [...new Set(S.map(x => x.c))].forEach(c => { const sc = S.find(x => x.c === c); const m = document.createElement("b"); m.style.left = (sc.t / END * 100) + "%"; m.title = c; marks.appendChild(m); });
+
+            seek(0);
+        })();
+    </script>
 
 </body>
 
