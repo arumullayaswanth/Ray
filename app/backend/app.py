@@ -14,6 +14,7 @@ from ray import serve
 
 log = logging.getLogger("ray.serve")
 
+# App configuration: model id, system prompt, static paths, and history limits.
 MODEL_ID = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 SYSTEM_PROMPT = "You are a helpful assistant. Be concise."
 STATIC_DIR = Path(__file__).parent / "static"
@@ -24,6 +25,7 @@ MAX_TEXT_LEN = 4000
 _ROLES = {"user": "user", "assistant": "model"}
 
 
+# Turn chat history plus the new message into Gemini's contents format.
 def build_contents(history: list[dict], message: str) -> list[dict]:
     contents = []
     for item in history[-MAX_HISTORY:]:
@@ -35,6 +37,7 @@ def build_contents(history: list[dict], message: str) -> list[dict]:
     return contents
 
 
+# Create the FastAPI app that Ray Serve will wrap and expose.
 api = FastAPI(title="KubeRay Gemini Agent")
 
 # Serve the built Vite/React assets (JS, CSS, images) if present.
@@ -47,11 +50,13 @@ class Message(BaseModel):
     content: str = Field(..., max_length=4000)
 
 
+# Incoming /chat request: the new message .
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=4000)
     history: list[Message] = Field(default_factory=list)
 
 
+# Outgoing /chat response: the model's
 class ChatResponse(BaseModel):
     answer: str
     model: str
@@ -68,6 +73,8 @@ class ChatResponse(BaseModel):
     },
     ray_actor_options={"num_cpus": 0.10},
 )
+
+# Attach the FastAPI routes to this deployment; set up the Gemini client on start.
 @serve.ingress(api)
 class Agent:
     def __init__(self):
@@ -103,14 +110,17 @@ class Agent:
     def index(self):
         return HTMLResponse(self.index_html)
 
+    # Liveness probe: confirms the process is up.
     @api.get("/healthz")
     def health(self):
         return {"status": "ok", "model": MODEL_ID}
 
+    # Readiness probe: confirms the agent can accept traffic.
     @api.get("/ready")
     def ready(self):
         return {"status": "ready", "model": MODEL_ID}
 
+    # Main chat endpoint: send the conversation to Gemini and return its reply.
     @api.post("/chat", response_model=ChatResponse)
     def chat(self, req: ChatRequest):
         if len(req.history) > MAX_HISTORY * 2:
