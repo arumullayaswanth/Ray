@@ -91,12 +91,11 @@ module "secrets" {
   source       = "./modules/secrets"
   cluster_name = module.eks.cluster_name
 
-  # ESO is what reads from Secrets Manager, so the pod-identity binding targets
-  # its controller service account.
-  service_account_name      = module.external_secrets.service_account_name
-  service_account_namespace = module.external_secrets.namespace
 
-  depends_on = [module.eks, module.external_secrets]
+  service_account_name      = "external-secrets"
+  service_account_namespace = "external-secrets"
+
+  depends_on = [module.eks]
 }
 
 module "kuberay" {
@@ -110,7 +109,7 @@ module "external_secrets" {
   source                   = "./modules/external-secrets"
   external_secrets_version = var.external_secrets_version
 
-  depends_on = [module.eks]
+  depends_on = [module.eks, module.secrets]
 }
 
 # NOTE: The GitHub Actions OIDC provider + IAM role are created MANUALLY in the
