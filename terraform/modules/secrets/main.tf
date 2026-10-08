@@ -1,21 +1,15 @@
 ############################
 # AWS SECRETS MANAGER
-# Creates the Gemini API key secret with a PLACEHOLDER value.
-#
-# Flow:
-#   1. terraform apply creates this secret with the placeholder "CHANGE_ME".
-#   2. Go to the AWS Console -> Secrets Manager -> this secret.
-#   3. Edit the value, remove "CHANGE_ME" and paste your real Gemini API key.
-#   4. Pods pull the value at runtime via the Secrets Store CSI Driver.
-#
-# The real key is NEVER stored in GitHub secrets or in Terraform state as a
-# real value. We ignore future changes to the value so Terraform won't
-# overwrite the key you set in the console.
+
 ############################
 
 resource "aws_secretsmanager_secret" "gemini" {
   name        = var.secret_name
   description = "Gemini API key for the KubeRay agent. Set the real value in the AWS Console."
+
+  # Delete immediately on destroy so a recreate with the same name does not hit
+  # "scheduled for deletion" (default recovery window is 30 days).
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "gemini" {
