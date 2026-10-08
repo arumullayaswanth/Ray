@@ -2927,6 +2927,13 @@
         }
 
         /* ===== Deploy guide page ===== */
+        .dp-expl {
+            margin: 10px 0 0;
+            color: #aebdd4;
+            font-size: .86rem;
+            line-height: 1.5;
+        }
+
         .dp {
             max-width: 980px;
             margin: 0 auto;
@@ -3729,126 +3736,215 @@
                     <p><b>Actions → deploy → Run workflow</b>. It builds the React UI and Ray app image, pushes it to
                         ECR, and commits the new image tag into <code>k8s/kustomization.yaml</code>.</p>
                 </article>
-                <div class="dp-phase">Deploy and test</div>
-                <article class="dp-step" id="dp-bastion">
+                <div class="dp-phase">Deploy from the bastion</div>
+                <article class="dp-step dp-step--single" id="dp-ssh">
                     <div class="dp-step-head"><span class="dp-no">7</span>
-                        <h3>Connect to the bastion</h3><span class="dp-where w-term">Terminal</span>
-                        <label class="dp-check"><input type="checkbox" data-step="bastion"> Done</label>
+                        <h3>SSH into the bastion</h3><span class="dp-where w-term">Terminal</span>
+                        <label class="dp-check"><input type="checkbox" data-step="ssh"> Done</label>
                     </div>
+                    <p class="dp-expl">Connect to the jump box using the public IP from the apply output.</p>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
-                        <pre>ssh ec2-user@&lt;BASTION_PUBLIC_IP&gt;
-aws eks update-kubeconfig --name YashAcademy --region us-east-1</pre>
+                        <pre>ssh ec2-user@&lt;BASTION_PUBLIC_IP&gt;</pre>
                     </div>
                 </article>
-                <article class="dp-step" id="dp-apply">
+                <article class="dp-step dp-step--single" id="dp-kubeconfig">
                     <div class="dp-step-head"><span class="dp-no">8</span>
-                        <h3>Clone the repo and deploy</h3><span class="dp-where w-term">Bastion</span>
-                        <label class="dp-check"><input type="checkbox" data-step="apply"> Done</label>
+                        <h3>Point kubectl at the cluster</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="kubeconfig"> Done</label>
                     </div>
+                    <p class="dp-expl">Loads the EKS kubeconfig so kubectl talks to the cluster.</p>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
-                        <pre>sudo yum install -y git          # if git is not already installed
-git clone https://github.com/arumullayaswanth/Ray.git
-cd Ray
-git pull                         # picks up the image tag the deploy workflow committed
-kubectl apply -k k8s/</pre>
+                        <pre>aws eks update-kubeconfig --name YashAcademy --region us-east-1</pre>
                     </div>
-                    <p>Creates the namespace, service account, SecretStore, ExternalSecret, RayService and public
-                        Service.</p>
                 </article>
-                <article class="dp-step" id="dp-verify">
+                <article class="dp-step dp-step--single" id="dp-git">
                     <div class="dp-step-head"><span class="dp-no">9</span>
-                        <h3>Verify the rollout</h3><span class="dp-where w-term">Bastion</span>
-                        <label class="dp-check"><input type="checkbox" data-step="verify"> Done</label>
+                        <h3>Install git</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="git"> Done</label>
                     </div>
+                    <p class="dp-expl">Only needed if git is not already present.</p>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
-                        <pre>kubectl get rayservice ai-agent -n ai-agent
-kubectl get pods -n ai-agent
-kubectl get secret gemini-secret -n ai-agent
-kubectl get svc -n ai-agent</pre>
+                        <pre>sudo yum install -y git</pre>
                     </div>
-                    <p>Wait for the RayService to be ready and for <code>gemini-secret</code> to exist before testing.
-                    </p>
-                    <p class="dp-note warn">If <code>gemini-secret</code> is missing and pods show
-                        <code>CreateContainerConfigError</code>, External Secrets started before its Pod Identity was
-                        ready. Restart it once: <code>kubectl rollout restart deployment -n external-secrets</code>,
-                        wait ~30s, then re-check.
-                    </p>
                 </article>
-                <article class="dp-step" id="dp-forward">
+                <article class="dp-step dp-step--single" id="dp-clone">
                     <div class="dp-step-head"><span class="dp-no">10</span>
-                        <h3>Port-forward (Ray dashboard + agent)</h3><span class="dp-where w-term">Bastion</span>
-                        <label class="dp-check"><input type="checkbox" data-step="forward"> Done</label>
+                        <h3>Clone the repo</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="clone"> Done</label>
                     </div>
-                    <p>The head service name has a random suffix, so look it up instead of hardcoding it. Run both
-                        forwards in the background so the terminal stays usable (do not use Ctrl+Z — it leaves the port
-                        bound).</p>
+                    <p class="dp-expl">Gets the Kubernetes manifests.</p>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
-                        <pre>HEAD_SVC=$(kubectl get svc -n ai-agent -o name | grep head-svc)
-
-# Ray dashboard on the bastion public IP (SG already allows all ports)
-nohup kubectl port-forward --address 0.0.0.0 $HEAD_SVC 8265:8265 -n ai-agent &gt; /tmp/pf8265.log 2&gt;&amp;1 &amp;
-
-# Agent serve API on localhost
-nohup kubectl port-forward svc/ai-agent-serve-svc 8000:8000 -n ai-agent &gt; /tmp/pf8000.log 2&gt;&amp;1 &amp;
-sleep 3; cat /tmp/pf8265.log /tmp/pf8000.log</pre>
+                        <pre>git clone https://github.com/arumullayaswanth/Ray.git</pre>
                     </div>
-                    <p>Ray dashboard: <code>http://&lt;BASTION_PUBLIC_IP&gt;:8265</code> · Agent:
-                        <code>http://localhost:8000</code>. If a port says "address already in use", clear it with
-                        <code>sudo fuser -k 8265/tcp</code> (or <code>8000/tcp</code>) and retry.
-                    </p>
                 </article>
-                <article class="dp-step" id="dp-test">
+                <article class="dp-step dp-step--single" id="dp-cd">
                     <div class="dp-step-head"><span class="dp-no">11</span>
-                        <h3>Test the agent</h3><span class="dp-where w-term">Bastion</span>
-                        <label class="dp-check"><input type="checkbox" data-step="test"> Done</label>
+                        <h3>Enter the repo</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="cd"> Done</label>
                     </div>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
-                        <pre># 1) single request — expect a JSON answer
-curl -s -X POST http://localhost:8000/chat \
+                        <pre>cd Ray</pre>
+                    </div>
+                </article>
+                <article class="dp-step dp-step--single" id="dp-deploy">
+                    <div class="dp-step-head"><span class="dp-no">12</span>
+                        <h3>Deploy the app</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="deploy"> Done</label>
+                    </div>
+                    <p class="dp-expl">Applies the namespace, service account, SecretStore, ExternalSecret, RayService
+                        and public Service.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>kubectl apply -k k8s/</pre>
+                    </div>
+                </article>
+                <div class="dp-phase">Check it is healthy</div>
+                <article class="dp-step dp-step--single" id="dp-pods">
+                    <div class="dp-step-head"><span class="dp-no">13</span>
+                        <h3>Watch the pods</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="pods"> Done</label>
+                    </div>
+                    <p class="dp-expl">Wait until both pods are Running.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>kubectl get pods -n ai-agent</pre>
+                    </div>
+                </article>
+                <article class="dp-step dp-step--single" id="dp-rayservice">
+                    <div class="dp-step-head"><span class="dp-no">14</span>
+                        <h3>Check the RayService</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="rayservice"> Done</label>
+                    </div>
+                    <p class="dp-expl">Should show RUNNING with 1 serve endpoint.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>kubectl get rayservice ai-agent -n ai-agent</pre>
+                    </div>
+                </article>
+                <article class="dp-step dp-step--single" id="dp-secret">
+                    <div class="dp-step-head"><span class="dp-no">15</span>
+                        <h3>Confirm the secret exists</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="secret"> Done</label>
+                    </div>
+                    <p class="dp-expl">ESO syncs this from Secrets Manager. If it is missing and pods show
+                        CreateContainerConfigError, run the fix below.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>kubectl get secret gemini-secret -n ai-agent</pre>
+                    </div>
+                </article>
+                <article class="dp-step dp-step--single" id="dp-eso-fix">
+                    <div class="dp-step-head"><span class="dp-no">16</span>
+                        <h3>Fix: secret missing</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="eso-fix"> Done</label>
+                    </div>
+                    <p class="dp-expl">ESO started before its Pod Identity was ready. Restart it, wait ~30s, then
+                        re-check the secret.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>kubectl rollout restart deployment -n external-secrets</pre>
+                    </div>
+                </article>
+                <div class="dp-phase">Open the dashboards</div>
+                <article class="dp-step dp-step--single" id="dp-headsvc">
+                    <div class="dp-step-head"><span class="dp-no">17</span>
+                        <h3>Find the head service name</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="headsvc"> Done</label>
+                    </div>
+                    <p class="dp-expl">The head service has a random suffix, so capture it in a variable.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>HEAD_SVC=$(kubectl get svc -n ai-agent -o name | grep head-svc)</pre>
+                    </div>
+                </article>
+                <article class="dp-step dp-step--single" id="dp-fwd-dash">
+                    <div class="dp-step-head"><span class="dp-no">18</span>
+                        <h3>Forward the Ray dashboard</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="fwd-dash"> Done</label>
+                    </div>
+                    <p class="dp-expl">Runs in the background. Then open http://<BASTION_PUBLIC_IP>:8265. Do not use
+                            Ctrl+Z (it leaves the port bound).</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>nohup kubectl port-forward --address 0.0.0.0 \
+  $HEAD_SVC 8265:8265 -n ai-agent \
+  &gt; /tmp/pf8265.log 2&gt;&amp;1 &amp;</pre>
+                    </div>
+                </article>
+                <article class="dp-step dp-step--single" id="dp-fwd-api">
+                    <div class="dp-step-head"><span class="dp-no">19</span>
+                        <h3>Forward the agent API</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="fwd-api"> Done</label>
+                    </div>
+                    <p class="dp-expl">Serves the app on localhost:8000. If a port says 'address already in use', clear
+                        it with sudo fuser -k 8000/tcp.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>nohup kubectl port-forward \
+  svc/ai-agent-serve-svc 8000:8000 -n ai-agent \
+  &gt; /tmp/pf8000.log 2&gt;&amp;1 &amp;</pre>
+                    </div>
+                </article>
+                <div class="dp-phase">Access the UI and test</div>
+                <article class="dp-step dp-step--single" id="dp-test-one">
+                    <div class="dp-step-head"><span class="dp-no">20</span>
+                        <h3>Send one request</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="test-one"> Done</label>
+                    </div>
+                    <p class="dp-expl">Expect a JSON answer from Gemini.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>curl -s -X POST http://localhost:8000/chat \
   -H &quot;Content-Type: application/json&quot; \
-  -d &#x27;{&quot;message&quot;:&quot;hi&quot;}&#x27;; echo
-
-# 2) sustained load: 20 workers for 60s (builds a queue so Serve scales 1 -&gt; 4)
-end=$((SECONDS+60))
+  -d &#x27;{&quot;message&quot;:&quot;hi&quot;}&#x27;</pre>
+                    </div>
+                </article>
+                <article class="dp-step dp-step--single" id="dp-test-load">
+                    <div class="dp-step-head"><span class="dp-no">21</span>
+                        <h3>Run a 60s load test</h3><span class="dp-where w-term">Bastion</span>
+                        <label class="dp-check"><input type="checkbox" data-step="test-load"> Done</label>
+                    </div>
+                    <p class="dp-expl">20 workers for 60s. Watch the Serve tab: Agent replicas climb 1 to 4, then drop
+                        back to 1 about 10s after the load stops.</p>
+                    <div class="dp-code">
+                        <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
+                        <pre>end=$((SECONDS+60))
 for w in $(seq 1 20); do
-  ( while [ $SECONDS -lt $end ]; do
+  (
+    while [ $SECONDS -lt $end ]; do
       curl -s -o /dev/null -X POST http://localhost:8000/chat \
         -H &quot;Content-Type: application/json&quot; \
-        -d &#x27;{&quot;message&quot;:&quot;write a 5 line poem about the cloud&quot;}&#x27;
-    done ) &amp;
+        -d &#x27;{&quot;message&quot;:&quot;write a 5 line poem&quot;}&#x27;
+    done
+  ) &amp;
 done
 wait; echo done</pre>
                     </div>
-                    <p>Watch the Ray dashboard <b>Serve</b> tab: the <code>Agent</code> replicas climb 1 → 4 within
-                        ~20s, then drop back to 1 about 10s after the load stops. A short one-shot loop finishes too
-                        fast to trigger scaling — the 60s sustained load is what builds the queue.</p>
                 </article>
-                <article class="dp-step" id="dp-public">
-                    <div class="dp-step-head"><span class="dp-no">12</span>
-                        <h3>Get the public URL (optional)</h3><span class="dp-where w-term">Bastion</span>
+                <article class="dp-step dp-step--single" id="dp-public">
+                    <div class="dp-step-head"><span class="dp-no">22</span>
+                        <h3>Get the public URL</h3><span class="dp-where w-term">Bastion</span>
                         <label class="dp-check"><input type="checkbox" data-step="public"> Done</label>
                     </div>
+                    <p class="dp-expl">Open this hostname in a browser for the chat UI. Note: /chat has no auth and the
+                        Service allows 0.0.0.0/0.</p>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
                         <pre>kubectl get svc ai-agent-public -n ai-agent \
   -o jsonpath=&#x27;{.status.loadBalancer.ingress[0].hostname}&#x27;</pre>
                     </div>
-                    <p class="dp-note warn"><code>/chat</code> has no authentication and the Service allows
-                        <code>0.0.0.0/0</code>. Restrict <code>loadBalancerSourceRanges</code> before sharing the URL.
-                    </p>
                 </article>
                 <div class="dp-phase">Clean up</div>
                 <article class="dp-step" id="dp-teardown">
-                    <div class="dp-step-head"><span class="dp-no">13</span>
+                    <div class="dp-step-head"><span class="dp-no">23</span>
                         <h3>Tear everything down</h3><span class="dp-where w-gh">GitHub Actions</span>
                         <label class="dp-check"><input type="checkbox" data-step="teardown"> Done</label>
                     </div>
-
                     <p><b>Actions → infra Terraform → Run workflow</b> with <code>action</code> = <b>destroy</b>. It
                         deletes the Kubernetes app and NLB first, then runs <code>terraform destroy</code>.</p>
                     <div class="dp-code">
