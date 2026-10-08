@@ -3748,9 +3748,10 @@ aws eks update-kubeconfig --name YashAcademy --region us-east-1</pre>
                     </div>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
-                        <pre>git clone &lt;YOUR_REPO_URL&gt;
-cd &lt;REPO_DIR&gt;
-git pull                 # picks up the image tag committed by the deploy workflow
+                        <pre>sudo yum install -y git          # if git is not already installed
+git clone https://github.com/arumullayaswanth/Ray.git
+cd Ray
+git pull                         # picks up the image tag the deploy workflow committed
 kubectl apply -k k8s/</pre>
                     </div>
                     <p>Creates the namespace, service account, SecretStore, ExternalSecret, RayService and public
@@ -3770,18 +3771,35 @@ kubectl get svc -n ai-agent</pre>
                     </div>
                     <p>Wait for the RayService to be ready and for <code>gemini-secret</code> to exist before testing.
                     </p>
+                    <p class="dp-note warn">If <code>gemini-secret</code> is missing and pods show
+                        <code>CreateContainerConfigError</code>, External Secrets started before its Pod Identity was
+                        ready. Restart it once: <code>kubectl rollout restart deployment -n external-secrets</code>,
+                        wait ~30s, then re-check.
+                    </p>
                 </article>
                 <article class="dp-step" id="dp-forward">
                     <div class="dp-step-head"><span class="dp-no">10</span>
-                        <h3>Port-forward</h3><span class="dp-where w-term">Bastion</span>
+                        <h3>Port-forward (Ray dashboard + agent)</h3><span class="dp-where w-term">Bastion</span>
                         <label class="dp-check"><input type="checkbox" data-step="forward"> Done</label>
                     </div>
+                    <p>The head service name has a random suffix, so look it up instead of hardcoding it. Run both
+                        forwards in the background so the terminal stays usable (do not use Ctrl+Z — it leaves the port
+                        bound).</p>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
-                        <pre>kubectl port-forward svc/ai-agent-head-svc 8265:8265 -n ai-agent
-kubectl port-forward svc/ai-agent-serve-svc 8000:8000 -n ai-agent</pre>
+                        <pre>HEAD_SVC=$(kubectl get svc -n ai-agent -o name | grep head-svc)
+
+# Ray dashboard on the bastion public IP (SG already allows all ports)
+nohup kubectl port-forward --address 0.0.0.0 $HEAD_SVC 8265:8265 -n ai-agent &gt; /tmp/pf8265.log 2&gt;&amp;1 &amp;
+
+# Agent serve API on localhost
+nohup kubectl port-forward svc/ai-agent-serve-svc 8000:8000 -n ai-agent &gt; /tmp/pf8000.log 2&gt;&amp;1 &amp;
+sleep 3; cat /tmp/pf8265.log /tmp/pf8000.log</pre>
                     </div>
-                    <p>Ray dashboard: <code>http://localhost:8265</code> · Agent: <code>http://localhost:8000</code></p>
+                    <p>Ray dashboard: <code>http://&lt;BASTION_PUBLIC_IP&gt;:8265</code> · Agent:
+                        <code>http://localhost:8000</code>. If a port says "address already in use", clear it with
+                        <code>sudo fuser -k 8265/tcp</code> (or <code>8000/tcp</code>) and retry.
+                    </p>
                 </article>
                 <article class="dp-step" id="dp-test">
                     <div class="dp-step-head"><span class="dp-no">11</span>
@@ -3790,18 +3808,25 @@ kubectl port-forward svc/ai-agent-serve-svc 8000:8000 -n ai-agent</pre>
                     </div>
                     <div class="dp-code">
                         <div class="dp-code-label">bash</div><button class="dp-copy" type="button">Copy</button>
-                        <pre>curl -X POST http://localhost:8000/chat \
+                        <pre># 1) single request — expect a JSON answer
+curl -s -X POST http://localhost:8000/chat \
   -H &quot;Content-Type: application/json&quot; \
-  -d &#x27;{&quot;message&quot;:&quot;hai&quot;}&#x27;
+  -d &#x27;{&quot;message&quot;:&quot;hi&quot;}&#x27;; echo
 
-for i in {1..20}; do
-  curl -X POST http://localhost:8000/chat \
-    -H &quot;Content-Type: application/json&quot; \
-    -d &#x27;{&quot;message&quot;:&quot;hai&quot;}&#x27; &amp;
+# 2) sustained load: 20 workers for 60s (builds a queue so Serve scales 1 -&gt; 4)
+end=$((SECONDS+60))
+for w in $(seq 1 20); do
+  ( while [ $SECONDS -lt $end ]; do
+      curl -s -o /dev/null -X POST http://localhost:8000/chat \
+        -H &quot;Content-Type: application/json&quot; \
+        -d &#x27;{&quot;message&quot;:&quot;write a 5 line poem about the cloud&quot;}&#x27;
+    done ) &amp;
 done
-wait</pre>
+wait; echo done</pre>
                     </div>
-                    <p>The 20 parallel requests should trigger Ray Serve autoscaling; watch it in the Ray dashboard.</p>
+                    <p>Watch the Ray dashboard <b>Serve</b> tab: the <code>Agent</code> replicas climb 1 → 4 within
+                        ~20s, then drop back to 1 about 10s after the load stops. A short one-shot loop finishes too
+                        fast to trigger scaling — the 60s sustained load is what builds the queue.</p>
                 </article>
                 <article class="dp-step" id="dp-public">
                     <div class="dp-step-head"><span class="dp-no">12</span>
