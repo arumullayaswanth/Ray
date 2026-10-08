@@ -2,7 +2,9 @@
 # Update system
 yum update -y
 
-# ----------------------------- Install kubectl -----------------------------
+# ----------------------------- Install git ---------------------------------
+yum install -y git
+git --version || true
 curl -o /tmp/kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
 chmod +x /tmp/kubectl
 mv /tmp/kubectl /usr/local/bin/kubectl
