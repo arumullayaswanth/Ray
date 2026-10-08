@@ -78,7 +78,6 @@ module "eks" {
   worker_role_arn           = module.iam.worker_role_arn
   worker_role_attachments   = module.iam.worker_role_attachments
   private_subnet_ids        = module.vpc.private_subnet_ids
-  bastion_role_arn          = module.bastion.role_arn
 }
 
 module "bastion" {

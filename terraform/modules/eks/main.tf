@@ -7,38 +7,12 @@ resource "aws_eks_cluster" "eks" {
   role_arn = var.cluster_role_arn
   version  = var.cluster_version
 
-  # API_AND_CONFIG_MAP lets us grant IAM principals via access entries below.
-  access_config {
-    authentication_mode = "API_AND_CONFIG_MAP"
-  }
-
   vpc_config {
     subnet_ids             = var.private_subnet_ids
     endpoint_public_access = true
   }
 
   depends_on = [var.cluster_policy_attachment]
-}
-
-# Grant the bastion IAM role access to the cluster so kubectl works on it.
-resource "aws_eks_access_entry" "bastion" {
-  count         = var.bastion_role_arn == "" ? 0 : 1
-  cluster_name  = aws_eks_cluster.eks.name
-  principal_arn = var.bastion_role_arn
-  type          = "STANDARD"
-}
-
-resource "aws_eks_access_policy_association" "bastion_admin" {
-  count         = var.bastion_role_arn == "" ? 0 : 1
-  cluster_name  = aws_eks_cluster.eks.name
-  principal_arn = var.bastion_role_arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-
-  access_scope {
-    type = "cluster"
-  }
-
-  depends_on = [aws_eks_access_entry.bastion]
 }
 
 ############################

@@ -49,10 +49,3 @@ variable "min_size" {
   type    = number
   default = 1
 }
-
-# IAM role ARN of the bastion, granted kubectl access via an EKS access entry.
-# Empty string disables the access entry.
-variable "bastion_role_arn" {
-  type    = string
-  default = ""
-}
