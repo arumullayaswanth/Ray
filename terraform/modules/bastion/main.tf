@@ -18,29 +18,10 @@ resource "aws_iam_role" "bastion" {
   })
 }
 
-# Permissions to read the cluster and run kubectl. Broad for a lab bastion;
-# tighten for production.
-resource "aws_iam_role_policy_attachment" "bastion_eks" {
+# Full admin on the bastion (lab convenience; tighten for production).
+resource "aws_iam_role_policy_attachment" "bastion_admin" {
   role       = aws_iam_role.bastion.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-}
-
-resource "aws_iam_role_policy" "bastion_describe" {
-  name = "${var.name}-bastion-eks-access"
-  role = aws_iam_role.bastion.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "eks:DescribeCluster",
-        "eks:ListClusters",
-        "eks:AccessKubernetesApi"
-      ]
-      Resource = "*"
-    }]
-  })
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
 resource "aws_iam_instance_profile" "bastion" {
