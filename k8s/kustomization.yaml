@@ -1,5 +1,4 @@
 # Applies all agent manifests together: kubectl apply -k k8s/
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -7,14 +6,15 @@ kind: Kustomization
 namespace: ai-agent
 
 resources:
-  - namespace.yaml
-  - serviceaccount.yaml
-  - secretstore.yaml
-  - externalsecret.yaml
-  - rayservice.yaml
-  - service.yaml
+- namespace.yaml
+- serviceaccount.yaml
+- secretstore.yaml
+- externalsecret.yaml
+- rayservice.yaml
+- service.yaml
 
 # Deploy job sets the real ECR image: kustomize edit set image kuberay-agent-image=<img>
 images:
-  - name: kuberay-agent-image
-    newTag: latest
+- name: kuberay-agent-image
+  newName: 713939171080.dkr.ecr.us-east-1.amazonaws.com/kuberay-agent
+  newTag: b7f5c8d3fd7ae99908e44bcd3dc79561341c2250
