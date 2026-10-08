@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.25"
+    }
+  }
+}
+
 ############################
 # EKS CLUSTER
 ############################
@@ -125,4 +134,35 @@ resource "aws_eks_addon" "ebs_csi" {
     aws_eks_node_group.node_group,
     aws_eks_pod_identity_association.ebs_csi
   ]
+}
+
+############################
+# aws-auth ConfigMap: map the worker node role (so nodes join) and the bastion
+# role (so kubectl works on the bastion with no manual eksctl step).
+############################
+
+resource "kubernetes_config_map_v1_data" "aws_auth" {
+  force = true
+
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = var.worker_role_arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      },
+      {
+        rolearn  = var.bastion_role_arn
+        username = "bastion-admin"
+        groups   = ["system:masters"]
+      },
+    ])
+  }
+
+  depends_on = [aws_eks_node_group.node_group]
 }

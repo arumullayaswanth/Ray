@@ -21,6 +21,11 @@ variable "worker_role_arn" {
   type = string
 }
 
+# Bastion IAM role ARN, mapped into aws-auth so kubectl works on the bastion.
+variable "bastion_role_arn" {
+  type = string
+}
+
 variable "worker_role_attachments" {
   description = "Dependency handles so the node group waits for IAM policy attachments."
   type        = list(string)
