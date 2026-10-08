@@ -1,11 +1,14 @@
-name: deploy architecture page
+name: deploy-architecture-page
 
-# Only runs when index.html changes (not on every push).
+# Publishes index.html to GitHub Pages. Triggers only when the page (or this
+# workflow) changes, or manually. Requires one time: Settings -> Pages ->
+# Source = "GitHub Actions".
 on:
   push:
     branches: [main]
     paths:
       - "index.html"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -15,28 +18,30 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    name: build-and-deploy
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Stage site (index.html only)
+      - name: Build the site folder
         run: |
           mkdir -p _site
           cp index.html _site/index.html
+          touch _site/.nojekyll
 
-      # Enable Pages once in the UI: Settings → Pages → Source: GitHub Actions.
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
-      - id: deploy
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
