@@ -17,4 +17,4 @@ resources:
 images:
 - name: kuberay-agent-image
   newName: 713939171080.dkr.ecr.us-east-1.amazonaws.com/kuberay-agent
-  newTag: b7f5c8d3fd7ae99908e44bcd3dc79561341c2250
+  newTag: 5fe3d44207ae0f062e0cb6357bbf366c16accbc2
